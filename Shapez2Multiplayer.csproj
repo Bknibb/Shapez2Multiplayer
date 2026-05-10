@@ -184,4 +184,8 @@
 	<OutputPath>$(SPZ2_PERSISTENT)\mods\Shapez2Multiplayer</OutputPath>
 	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
+
+	<Target Name="SteamPublish">
+		<Exec Command='sh .\Steam\SteamPublish.sh "$(OutputPath)'/>
+	</Target>
 </Project>

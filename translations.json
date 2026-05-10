@@ -1,0 +1,30 @@
+﻿{
+  "en-US": {
+    "menu.multiplayer.title": "MULTIPLAYER",
+    "menu.multiplayer.refresh": "REFRESH",
+    "menu.multiplayer.join": "JOIN",
+    "menu.multiplayer.directconnect": "DIRECT CONNECT",
+    "menu.multiplayer.ipaddress": "IP ADDRESS",
+    "menu.multiplayer.error-load-sessions": "Failed to load sessions.",
+    "menu.multiplayer.no-sessions": "No sessions found. Use <gl>REFRESH</gl> in the top right to search again.",
+    "menu.multiplayer.session-load-fail": "Failed to load session data",
+    "multiplayer.host": "HOST",
+    "multiplayer.stophosting": "STOP HOSTING",
+    "multiplayer.inlobby": "IN LOBBY",
+    "multiplayer.kick": "KICK",
+    "multiplayer.disconnected-dialog.title": "DISCONNECTED",
+    "multiplayer.disconnected-dialog.description-timedout": "Timed out",
+    "multiplayer.disconnected-dialog.description-lostconnection": "Lost connection",
+    "multiplayer.disconnected-dialog.description-kicked": "Kicked",
+    "multiplayer.disconnected-dialog.description-sessionclosed": "Session closed",
+    "mutliplayer.paused-dialog.title": "GAME PAUSED",
+    "multiplayer.paused-dialog.description-waitingforplayer": "Waiting for players to connect...",
+    "multiplayer.failedtoconnect-dialog.title": "FAILED TO CONNECT",
+    "multiplayer.failedtoconnect-dialog.description": "Failed to connect to server",
+    "multiplayer.connecting-dialog.title": "CONNECTING TO GAME",
+    "multiplayer.connecting-dialog.description": "Please wait...",
+    "multiplayer.connecting-dialog.cancel": "CANCEL",
+    "multiplayer.report-issue": "REPORT ISSUE",
+    "multiplayer.invite": "INVITE"
+  }
+}

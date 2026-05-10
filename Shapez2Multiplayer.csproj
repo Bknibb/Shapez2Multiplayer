@@ -1,0 +1,187 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <Nullable>enable</Nullable>
+	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+	<PackageReference Include="HarmonyX" Version="2.16.1">
+		<IncludeAssets>compile</IncludeAssets>
+	</PackageReference>
+	<PackageReference Include="K4os.Compression.LZ4" Version="1.3.8" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Core">
+      <HintPath>$(SPZ2_PATH)\Core.dll</HintPath>
+	  <Private>False</Private>
+    </Reference>
+    <Reference Include="ENet-CSharp">
+      <HintPath>ENet-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="Game.Core">
+      <HintPath>$(SPZ2_PATH)\Game.Core.dll</HintPath>
+	  <Private>False</Private>
+    </Reference>
+    <Reference Include="Game.Core.Editor.MeshBaker">
+      <HintPath>$(SPZ2_PATH)\Game.Core.Editor.MeshBaker.dll</HintPath>
+	  <Private>False</Private>
+    </Reference>
+    <Reference Include="Game.Core.Effects">
+      <HintPath>$(SPZ2_PATH)\Game.Core.Effects.dll</HintPath>
+	  <Private>False</Private>
+    </Reference>
+    <Reference Include="Game.Core.Effects.Editor.MonoBehaviours">
+      <HintPath>$(SPZ2_PATH)\Game.Core.Effects.Editor.MonoBehaviours.dll</HintPath>
+	  <Private>False</Private>
+    </Reference>
+    <Reference Include="Game.Core.Map">
+      <HintPath>$(SPZ2_PATH)\Game.Core.Map.dll</HintPath>
+	  <Private>False</Private>
+    </Reference>
+    <Reference Include="Game.Core.Map.Layout">
+      <HintPath>$(SPZ2_PATH)\Game.Core.Map.Layout.dll</HintPath>
+	  <Private>False</Private>
+    </Reference>
+    <Reference Include="Game.Core.Map.Layout.Model">
+      <HintPath>$(SPZ2_PATH)\Game.Core.Map.Layout.Model.dll</HintPath>
+	  <Private>False</Private>
+    </Reference>
+    <Reference Include="Game.Core.Map.Model">
+      <HintPath>$(SPZ2_PATH)\Game.Core.Map.Model.dll</HintPath>
+	  <Private>False</Private>
+    </Reference>
+    <Reference Include="Game.Core.Map.Simulation">
+      <HintPath>$(SPZ2_PATH)\Game.Core.Map.Simulation.dll</HintPath>
+	  <Private>False</Private>
+    </Reference>
+    <Reference Include="Game.Core.Modding">
+      <HintPath>$(SPZ2_PATH)\Game.Core.Modding.dll</HintPath>
+	  <Private>False</Private>
+    </Reference>
+    <Reference Include="Game.Core.Rendering">
+      <HintPath>$(SPZ2_PATH)\Game.Core.Rendering.dll</HintPath>
+	  <Private>False</Private>
+    </Reference>
+    <Reference Include="Game.Core.Rendering.ShaderProfiling">
+      <HintPath>$(SPZ2_PATH)\Game.Core.Rendering.ShaderProfiling.dll</HintPath>
+	  <Private>False</Private>
+    </Reference>
+    <Reference Include="Game.Core.Simulation">
+      <HintPath>$(SPZ2_PATH)\Game.Core.Simulation.dll</HintPath>
+	  <Private>False</Private>
+    </Reference>
+	  <Reference Include="Game.Core.Coordinates">
+		  <HintPath>$(SPZ2_PATH)\Game.Core.Coordinates.dll</HintPath>
+		  <Private>False</Private>
+	  </Reference>
+	  <Reference Include="Game.Content.Features">
+		  <HintPath>$(SPZ2_PATH)\Game.Content.Features.dll</HintPath>
+		  <Private>False</Private>
+	  </Reference>
+    <Reference Include="Game.Orchestration">
+      <HintPath>$(SPZ2_PATH)\Game.Orchestration.dll</HintPath>
+	  <Private>False</Private>
+    </Reference>
+	  <Reference Include="Game.Interaction">
+		  <HintPath>$(SPZ2_PATH)\Game.Interaction.dll</HintPath>
+		  <Private>False</Private>
+	  </Reference>
+    <Reference Include="SPZGameAssembly">
+      <HintPath>$(SPZ2_PATH)\SPZGameAssembly.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(SPZ2_PATH)\UnityEngine.CoreModule.dll</HintPath>
+	  <Private>False</Private>
+    </Reference>
+	  <Reference Include="UnityEngine.UIModule">
+		  <HintPath>$(SPZ2_PATH)\UnityEngine.UIModule.dll</HintPath>
+		  <Private>False</Private>
+	  </Reference>
+	  <Reference Include="UnityEngine.UI">
+		  <HintPath>$(SPZ2_PATH)\UnityEngine.UI.dll</HintPath>
+		  <Private>False</Private>
+	  </Reference>
+	<Reference Include="MainMenuAssembly">
+	  <HintPath>$(SPZ2_PATH)\MainMenuAssembly.dll</HintPath>
+      <Private>False</Private>
+	</Reference>
+	  <Reference Include="Core.Localization">
+		  <HintPath>$(SPZ2_PATH)\Core.Localization.dll</HintPath>
+		  <Private>False</Private>
+	  </Reference>
+	  <Reference Include="DOTween">
+		  <HintPath>$(SPZ2_PATH)\DOTween.dll</HintPath>
+		  <Private>False</Private>
+	  </Reference>
+	  <Reference Include="Facepunch.Steamworks">
+		  <HintPath>$(SPZ2_PATH)\Facepunch.Steamworks.Win64.dll</HintPath>
+		  <Private>False</Private>
+	  </Reference>
+	  <Reference Include="Unity.Mathematics">
+		  <HintPath>$(SPZ2_PATH)\Unity.Mathematics.dll</HintPath>
+		  <Private>False</Private>
+	  </Reference>
+	  <Reference Include="Unity.Core">
+		  <HintPath>$(SPZ2_PATH)\Unity.Core.dll</HintPath>
+		  <Private>False</Private>
+	  </Reference>
+	  <Reference Include="UnityEngine.JSONSerializeModule">
+		  <HintPath>$(SPZ2_PATH)\UnityEngine.JSONSerializeModule.dll</HintPath>
+		  <Private>False</Private>
+	  </Reference>
+	  <Reference Include="Semver">
+		  <HintPath>$(SPZ2_PATH)\Semver.dll</HintPath>
+		  <Private>False</Private>
+	  </Reference>
+	  <Reference Include="UniTask">
+		  <HintPath>$(SPZ2_PATH)\UniTask.dll</HintPath>
+		  <Private>False</Private>
+	  </Reference>
+	  <Reference Include="LeTai.Asset.TranslucentImage">
+		  <HintPath>$(SPZ2_PATH)\LeTai.Asset.TranslucentImage.dll</HintPath>
+		  <Private>False</Private>
+	  </Reference>
+	  <Reference Include="Unity.TextMeshPro">
+		  <HintPath>$(SPZ2_PATH)\Unity.TextMeshPro.dll</HintPath>
+		  <Private>False</Private>
+	  </Reference>
+	  <Reference Include="SPZPluginsAssembly">
+		  <HintPath>$(SPZ2_PATH)\SPZPluginsAssembly.dll</HintPath>
+		  <Private>False</Private>
+	  </Reference>
+	  <Reference Include="Game.Tutorial">
+		  <HintPath>$(SPZ2_PATH)\Game.Tutorial.dll</HintPath>
+		  <Private>False</Private>
+	  </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+	<None Update="ENet-CSharp.dll">
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</None>
+	<None Update="manifest.json">
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</None>
+	<None Update="translations.json">
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</None>
+	<None Update="enet.dll">
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</None>
+	  <None Update="libenet.dylib">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Update="libenet.so">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+  </ItemGroup>
+
+  <PropertyGroup>
+	<OutputPath>$(SPZ2_PERSISTENT)\mods\Shapez2Multiplayer</OutputPath>
+	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+</Project>

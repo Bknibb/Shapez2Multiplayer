@@ -1,0 +1,96 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
+
+namespace Shapez2Multiplayer.Packets
+{
+    public enum Packet : byte
+    {
+        Savegame,
+        PlayerAction,
+        SendToAll,
+        Pause,
+        FinishedConnecting,
+        PlayerInfo,
+        DisconnectReason,
+        UpdateConnectionInfo,
+        SyncResearchManager,
+        PinChange,
+        PlacementIndicatorData,
+        UniversalID,
+        UpdateBuildingMassSelection,
+        UpdateIslandMassSelection,
+    }
+    public static class PacketExtensions
+    {
+        public static Type GetType(this Packet packet) =>
+            packet switch
+            {
+                Packet.Savegame => typeof(SavegamePacket),
+                Packet.PlayerAction => typeof(PlayerActionPacket),
+                Packet.SendToAll => typeof(SendToAllPacket),
+                Packet.Pause => typeof(PausePacket),
+                Packet.FinishedConnecting => typeof(FinishedConnectingPacket),
+                Packet.PlayerInfo => typeof(PlayerInfoPacket),
+                Packet.DisconnectReason => typeof(DisconnectReasonPacket),
+                Packet.UpdateConnectionInfo => typeof(UpdateConnectionInfoPacket),
+                Packet.SyncResearchManager => typeof(SyncResearchManagerPacket),
+                Packet.PinChange => typeof(PinChangePacket),
+                Packet.PlacementIndicatorData => typeof(PlacementIndicatorDataPacket),
+                Packet.UniversalID => typeof(UniversalIDPacket),
+                Packet.UpdateBuildingMassSelection => typeof(UpdateBuildingMassSelectionPacket),
+                Packet.UpdateIslandMassSelection => typeof(UpdateIslandMassSelectionPacket),
+                _ => throw new ArgumentException("Invalid packet"),
+            };
+        public static Packet GetFromType(Type type)
+        {
+            if (type == typeof(SavegamePacket)) return Packet.Savegame;
+            else if (type == typeof(PlayerActionPacket)) return Packet.PlayerAction;
+            else if (type == typeof(SendToAllPacket)) return Packet.SendToAll;
+            else if (type == typeof(PausePacket)) return Packet.Pause;
+            else if (type == typeof(FinishedConnectingPacket)) return Packet.FinishedConnecting;
+            else if (type == typeof(PlayerInfoPacket)) return Packet.PlayerInfo;
+            else if (type == typeof(DisconnectReasonPacket)) return Packet.DisconnectReason;
+            else if (type == typeof(UpdateConnectionInfoPacket)) return Packet.UpdateConnectionInfo;
+            else if (type == typeof(SyncResearchManagerPacket)) return Packet.SyncResearchManager;
+            else if (type == typeof(PinChangePacket)) return Packet.PinChange;
+            else if (type == typeof(PlacementIndicatorDataPacket)) return Packet.PlacementIndicatorData;
+            else if (type == typeof(UniversalIDPacket)) return Packet.UniversalID;
+            else if (type == typeof(UpdateBuildingMassSelectionPacket)) return Packet.UpdateBuildingMassSelection;
+            else if (type == typeof(UpdateIslandMassSelectionPacket)) return Packet.UpdateIslandMassSelection;
+            throw new ArgumentException("Invalid packet type");
+        }
+        public static byte[] Encode(IPacket packet, uint? from = null)
+        {
+            using var stream = new MemoryStream();
+            using BinaryWriter writer = new BinaryWriter(stream, UTF8Encoding.UTF8, true);
+            writer.Write(from != null);
+            if (from != null) writer.Write(from.Value);
+            stream.WriteByte((byte)GetFromType(packet.GetType()));
+            packet.Encode(stream);
+            return stream.ToArray();
+        }
+        public static IPacket Decode(byte[] data, out uint? from)
+        {
+            using var stream = new MemoryStream(data);
+            using BinaryReader reader = new BinaryReader(stream, UTF8Encoding.UTF8, true);
+            from = null;
+            if (reader.ReadBoolean()) from = reader.ReadUInt32();
+            var packet = GetPacket((Packet)stream.ReadByte());
+            packet.Decode(stream);
+            return packet;
+        }
+        public static IPacket Decode(byte[] data)
+        {
+            return Decode(data, out uint? _);
+        }
+        public static IPacket GetPacket(this Packet packet)
+        {
+#if DEBUG
+            Shapez2Multiplayer.logger.Info?.Log($"Got packet of type {packet}");
+#endif
+            return (IPacket)GetType(packet).GetConstructor(new Type[] { }).Invoke(new object[] { });
+        }
+    }
+}

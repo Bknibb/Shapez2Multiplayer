@@ -1,0 +1,25 @@
+﻿{
+  "Version": "1.0.0",
+  "Description": "A Multiplayer Mod For Shapez 2",
+  "Author": "Bknibb",
+  "AffectsSaveGames": false,
+  "DisablesAchievements": false,
+  "SaveGameCompabilityRange": "*",
+  "GameVersionSupportRange": ">=1.0.0",
+  "Assemblies": [
+    "Shapez2Multiplayer.dll"
+  ],
+  "Dependencies": [
+    {
+      "ModId": "steam:3720742050",
+      "ModTitle": "HarmonyX",
+      "Version": "*"
+    },
+    {
+      "ModId": "steam:3720740565",
+      "ModTitle": "Steamworks Platform Resolver",
+      "Version": "*"
+    }
+  ],
+  "Conflicts": []
+}

@@ -71,7 +71,7 @@ namespace Shapez2Multiplayer.Packets
             }
             researchManager.BlueprintCurrencyManager.SetBlueprintCurrency(ResearchManagerSerializedData.BlueprintCurrency.BlueprintCurrency);
             BlueprintCurrencyManagerTotalAmountSpentInfo.SetValue(researchManager.BlueprintCurrencyManager, ResearchManagerSerializedData.BlueprintCurrency.TotalAmountSpent);
-            researchManager.PointStorage.Set(new ResearchPointCurrency(ResearchManagerSerializedData.PointCurrency.Points));
+            if (researchManager.PointStorage.Points.Amount != ResearchManagerSerializedData.PointCurrency.Points) researchManager.PointStorage.Set(new ResearchPointCurrency(ResearchManagerSerializedData.PointCurrency.Points));
             ResearchPointStorageTotalSpentInfo.SetValue(researchManager.PointStorage, new ResearchPointCurrency(ResearchManagerSerializedData.PointCurrency.TotalSpent));
             foreach (var kvp in ResearchManagerSerializedData.LinearUpgrades.UpgradeLevels)
             {

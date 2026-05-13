@@ -10,6 +10,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Security.Cryptography;
@@ -50,6 +51,20 @@ namespace Shapez2Multiplayer.Packets
             Shapez2Multiplayer.DebugLastAction = PlayerAction;
 #endif
             Shapez2Multiplayer.WaitingActions.Add(PlayerAction);
+            if (PlayerAction is ActionModifyBuildings actionModifyBuildings)
+            {
+                foreach (var delete in actionModifyBuildings.Data.Delete)
+                {
+                    Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.InteractionState.BuildingSelection.Remove(Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.InteractionState.BuildingSelection.Where(b => b.Id == delete.BuildingId));
+                }
+            } else if (PlayerAction is ActionModifyIsland actionModifyIsland)
+            {
+                foreach (var delete in actionModifyIsland.Data.Delete)
+                {
+                    Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.InteractionState.BuildingSelection.Remove(Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.InteractionState.BuildingSelection.Where(b => b.Island.Id == delete.IslandId));
+                    Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.InteractionState.IslandSelection.Remove(Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.InteractionState.IslandSelection.Where(i => i.Id == delete.IslandId));
+                }
+            }
             if (!Shapez2Multiplayer.PlayerActions.TryScheduleActionNoDetection(PlayerAction))
             {
                 Shapez2Multiplayer.logger.Warning.Log("Action Failed, Likely Desync");

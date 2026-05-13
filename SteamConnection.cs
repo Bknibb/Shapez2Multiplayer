@@ -1,4 +1,5 @@
 ﻿using K4os.Compression.LZ4;
+using Shapez2Multiplayer.Packets;
 using Steamworks;
 using Steamworks.Data;
 using System;
@@ -30,7 +31,19 @@ namespace Shapez2Multiplayer
 
         public bool Send(byte[] data)
         {
-            return Connection.SendMessage(LZ4Pickler.Pickle(data)) == Steamworks.Result.OK;
+            var compressed = LZ4Pickler.Pickle(data);
+            if (compressed.Length > ChunkedPacket.ChunkThreshold)
+            {
+                Shapez2Multiplayer.logger.Warning.Log($"Packet too large, sending as chunked");
+                ChunkedPacket.Send(compressed, this);
+                return true;
+            }
+            var result = Connection.SendMessage(compressed);
+            if (result != Steamworks.Result.OK)
+            {
+                Shapez2Multiplayer.logger.Warning.Log($"Failed to send steam packet with error {result}");
+            }
+            return result == Steamworks.Result.OK;
         }
 
         public static implicit operator Connection(SteamConnection connection) => connection.Connection;

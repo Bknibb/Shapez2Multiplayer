@@ -235,6 +235,8 @@ namespace Shapez2Multiplayer
                 ConnectingDialog?.OnClosed.Unregister(DialogClosed);
                 ConnectingDialog?.Close();
                 ConnectingDialog = null;
+                ChunkedPacket.ChunkedPacketCache.Clear();
+                ChunkedPacket.HostChunkedPacketCache.Clear();
                 Lobby?.Leave();
                 Lobby = null;
                 if (wasClient && canReturnToMenu && Shapez2Multiplayer.Game.IsGameInSession(out IGameStartOptions _))
@@ -293,10 +295,8 @@ namespace Shapez2Multiplayer
         }
         public static void Update()
         {
-            if (socketManager != null)
-            {
-                socketManager.Update();
-            }
+            ChunkedPacket.Update();
+            socketManager?.Update();
             connectionManager?.Update();
         }
     }

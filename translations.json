@@ -23,6 +23,7 @@
     "multiplayer.failedtoconnect-dialog.description": "Failed to connect to server",
     "multiplayer.connecting-dialog.title": "CONNECTING TO GAME",
     "multiplayer.connecting-dialog.description": "Please wait...",
+    "multiplayer.connecting-dialog.recieving-data": "Receiving Data...",
     "multiplayer.connecting-dialog.cancel": "CANCEL",
     "multiplayer.report-issue": "REPORT ISSUE",
     "multiplayer.invite": "INVITE"

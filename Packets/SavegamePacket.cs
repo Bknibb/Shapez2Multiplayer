@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 using static Shapez2Multiplayer.MultiplayerCore;
 
 namespace Shapez2Multiplayer.Packets
@@ -48,13 +49,14 @@ namespace Shapez2Multiplayer.Packets
             MultiplayerCore.ConnectingDialog?.OnClosed.Unregister(MultiplayerCore.DialogClosed);
             MultiplayerCore.ConnectingDialog?.Close();
             MultiplayerCore.ConnectingDialog = null;
+            MultiplayerCore.connectionManager.StartSeperateThread();
             Sequence? sequence = Shapez2Multiplayer.MainMenuOrchestratorFadeOut(false);
             if (sequence == null) return;
             sequence.OnComplete(() =>
             {
                 IReadOnlyDictionary<Type, IDataSerializer> dataSerializers = Shapez2Multiplayer.MainMenuOrchestratorBackgroundGameOrchestrator.DataSerializers;
                 SavegameBlobReader savegameBlobReader = new SaveFileAccessor(Shapez2Multiplayer.MainMenuOrchestratorLogger).ReadFromStream(SavegameEncoded, dataSerializers);
-                Shapez2Multiplayer.MainMenuOrchestratorFlowNavigator.LoadSession(new GameStartOptionsContinueExisting(savegameBlobReader, false, Uid, false)).ContinueWith(_ =>
+                Shapez2Multiplayer.MainMenuOrchestratorFlowNavigator.LoadSession(new GameStartOptionsContinueExisting(savegameBlobReader, false, Uid, false)).ContinueWith(async _ =>
                 {
                     if (!MultiplayerCore.Client)
                     {
@@ -67,6 +69,7 @@ namespace Shapez2Multiplayer.Packets
                         });
                         return;
                     }
+                    MultiplayerCore.connectionManager.StopSeperateThread();
                     MultiplayerCore.connectionManager.HostDrawer = Shapez2Multiplayer.CreateOtherPlayerEntityPlacementDrawer();
                     MultiplayerCore.connectionManager.HostBuildingMassSelection = HUDMultiplayerMassSelectionsHost.Instance.CreateOtherPlayerHUDBuildingMassSelection();
                     MultiplayerCore.connectionManager.HostIslandMassSelection = HUDMultiplayerMassSelectionsHost.Instance.CreateOtherPlayerHUDIslandMassSelection();

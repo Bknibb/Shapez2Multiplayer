@@ -1,5 +1,6 @@
 ﻿using ENet;
 using K4os.Compression.LZ4;
+using Shapez2Multiplayer.Packets;
 using Steamworks.Data;
 using System;
 using System.Collections.Generic;
@@ -35,8 +36,15 @@ namespace Shapez2Multiplayer
 
         public bool Send(byte[] data)
         {
-            Packet packet = new Packet();
-            packet.Create(LZ4Pickler.Pickle(data));
+            var compressed = LZ4Pickler.Pickle(data);
+            if (compressed.Length > ChunkedPacket.ChunkThreshold)
+            {
+                Shapez2Multiplayer.logger.Warning.Log($"Packet too large, sending as chunked");
+                ChunkedPacket.Send(compressed, this);
+                return true;
+            }
+            ENet.Packet packet = new ENet.Packet();
+            packet.Create(compressed);
             return Peer.Send(0, ref packet);
         }
 

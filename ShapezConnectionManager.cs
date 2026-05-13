@@ -9,6 +9,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Tasks;
 using UnityEngine;
 using static Shapez2Multiplayer.MultiplayerCore;
 
@@ -31,6 +32,7 @@ namespace Shapez2Multiplayer
         public Dictionary<uint, OtherPlayerHUDBuildingMassSelection> PlayersBuildingMassSelections = new Dictionary<uint, OtherPlayerHUDBuildingMassSelection>();
         public Dictionary<uint, OtherPlayerHUDIslandMassSelection> PlayersIslandMassSelections = new Dictionary<uint, OtherPlayerHUDIslandMassSelection>();
         public bool FinishedConnecting = false;
+        public bool InSeperateThread = false;
         public ShapezConnectionManager(IConnectionManager connectionManager)
         {
             ConnectionManager = connectionManager;
@@ -78,7 +80,7 @@ namespace Shapez2Multiplayer
             Shapez2Multiplayer.logger.Info?.Log($"Recieved Data Of Length: {data.Length}, Compressed {compressedLength}");
 #endif
             var packet = PacketExtensions.Decode(data, out uint? from);
-            
+
             InfoConnection? fromInfo = null;
             if (from.HasValue) if (ConnectionsDict.TryGetValue(from.Value, out InfoConnection c)) fromInfo = c;
             packet.Handle(null, fromInfo);
@@ -108,7 +110,24 @@ namespace Shapez2Multiplayer
                 SendToAll(new UpdateBuildingMassSelectionPacket(Shapez2Multiplayer.HUDBuildingMassSelection, Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.InteractionState.BuildingSelection.ToList()));
                 SendToAll(new UpdateIslandMassSelectionPacket(Shapez2Multiplayer.HUDIslandMassSelection, Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.InteractionState.IslandSelection.ToList()));
             }
-            ConnectionManager.Update();
+            if (!InSeperateThread) ConnectionManager.Update();
+        }
+        public async Task SeperateThread()
+        {
+            InSeperateThread = true;
+            while (InSeperateThread)
+            {
+                ConnectionManager.Update();
+                await Task.Delay(1000);
+            }
+        }
+        public void StartSeperateThread()
+        {
+            Task.Run(SeperateThread);
+        }
+        public void StopSeperateThread()
+        {
+            InSeperateThread = false;
         }
     }
 }

@@ -11,6 +11,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using UnityEngine;
+using static Shapez2Multiplayer.Packets.ChunkedPacket;
 
 namespace Shapez2Multiplayer
 {
@@ -35,12 +36,14 @@ namespace Shapez2Multiplayer
             typeof(SavegamePacket),
             typeof(PausePacket),
             typeof(DisconnectReasonPacket),
-            typeof(UpdateConnectionInfoPacket)
+            typeof(UpdateConnectionInfoPacket),
+            typeof(ChunkedPacket)
         };
         public static readonly List<Type> AlwaysAllowedToRecieve = new List<Type>()
         {
             typeof(FinishedConnectingPacket),
-            typeof(PlayerInfoPacket)
+            typeof(PlayerInfoPacket),
+            typeof(ChunkedPacket)
         };
         public ShapezSocketManager(ISocketManager socketManager)
         {
@@ -73,9 +76,8 @@ namespace Shapez2Multiplayer
         public void OnConnected(IConnection connection)
         {
             Shapez2Multiplayer.logger.Info?.Log("Client connected: " + connection.Id);
-            Shapez2Multiplayer.YetToRecieveSavegame.Add(connection);
-            Shapez2Multiplayer.GameSessionOrchestrator.TrySaveCurrentAsync();
             HUDMultiplayerPausePanel.instance.AddPlayer(connection);
+            ChunkedPacket.ChunkedPacketCache.Add(connection.UniversalId, new Dictionary<uint, ChunkCacheData>());
             PlayersDrawers.Add(connection.UniversalId, Shapez2Multiplayer.CreateOtherPlayerEntityPlacementDrawer());
             PlayersBuildingMassSelections.Add(connection.UniversalId, HUDMultiplayerMassSelectionsHost.Instance.CreateOtherPlayerHUDBuildingMassSelection());
             PlayersIslandMassSelections.Add(connection.UniversalId, HUDMultiplayerMassSelectionsHost.Instance.CreateOtherPlayerHUDIslandMassSelection());
@@ -87,12 +89,15 @@ namespace Shapez2Multiplayer
                 SendToAllExcept(new PausePacket(true, new CombinedText("multiplayer.paused-dialog.description-waitingforplayer".T(), new RawText("\n"+string.Join(", ", Connecting.Select(c => c.Name))))), Connecting);
                 new PausePacket(true, new CombinedText("multiplayer.paused-dialog.description-waitingforplayer".T(), new RawText("\n" + string.Join(", ", Connecting.Select(c => c.Name))))).Handle(null);
             }
+            Shapez2Multiplayer.YetToRecieveSavegame.Add(connection);
+            Shapez2Multiplayer.GameSessionOrchestrator.TrySaveCurrentAsync();
         }
 
         public void OnDisconnected(IConnection connection)
         {
             Shapez2Multiplayer.logger.Info?.Log("Client disconnected: " + connection.Id);
             HUDMultiplayerPausePanel.instance.RemovePlayer(connection);
+            ChunkedPacket.ChunkedPacketCache.Remove(connection.UniversalId);
             PlayersDrawers.Remove(connection.UniversalId);
             PlayersBuildingMassSelections.Remove(connection.UniversalId);
             PlayersIslandMassSelections.Remove(connection.UniversalId);
@@ -194,6 +199,7 @@ namespace Shapez2Multiplayer
         }
         public void SendTo(IPacket packet, IConnection connection)
         {
+            if (!Connected.Contains(connection) && !Connecting.Contains(connection)) return;
             if (Connecting.Count > 0 && !AlwaysAllowedToSend.Contains(packet.GetType()))
             {
                 BufferedSendToPackets.Add(new Tuple<IPacket, IConnection>(packet, connection));
@@ -211,6 +217,7 @@ namespace Shapez2Multiplayer
             byte[] encoded = PacketExtensions.Encode(packet);
             foreach (var connection in connections)
             {
+                if (!Connected.Contains(connection) && !Connecting.Contains(connection)) continue;
                 if (!connection.Send(encoded)) Shapez2Multiplayer.logger.Warning.Log($"Dropped packet {packet.GetType().Name} to {connection.Name} because send failed");
             }
         }

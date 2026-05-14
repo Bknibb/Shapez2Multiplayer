@@ -17,9 +17,10 @@ namespace Shapez2Multiplayer.Packets
             DisconnectReason = (MultiplayerCore.DisconnectReason)stream.ReadByte();
         }
 
-        public void Encode(Stream stream)
+        public bool Encode(Stream stream)
         {
             stream.WriteByte((byte)DisconnectReason);
+            return true;
         }
 
         public void Handle(IConnection? connection, InfoConnection? routedFrom = null)

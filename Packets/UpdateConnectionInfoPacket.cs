@@ -31,7 +31,7 @@ namespace Shapez2Multiplayer.Packets
             }
         }
 
-        public void Encode(Stream stream)
+        public bool Encode(Stream stream)
         {
             using BinaryWriter writer = new BinaryWriter(stream);
             writer.Write(UpdateConnections.Count);
@@ -44,6 +44,7 @@ namespace Shapez2Multiplayer.Packets
             {
                 writer.Write(connectionId);
             }
+            return true;
         }
 
         public void Handle(IConnection? connection, InfoConnection? routedFrom = null)

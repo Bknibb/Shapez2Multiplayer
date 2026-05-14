@@ -29,13 +29,13 @@ namespace Shapez2Multiplayer
             Connection.Close();
         }
 
-        public bool Send(byte[] data)
+        public bool Send(byte[] data, Packet packet)
         {
             var compressed = LZ4Pickler.Pickle(data);
             if (compressed.Length > ChunkedPacket.ChunkThreshold)
             {
                 Shapez2Multiplayer.logger.Warning.Log($"Packet too large, sending as chunked");
-                ChunkedPacket.Send(compressed, this);
+                ChunkedPacket.Send(compressed, this, packet);
                 return true;
             }
             var result = Connection.SendMessage(compressed);

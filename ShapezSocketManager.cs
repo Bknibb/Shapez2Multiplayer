@@ -144,11 +144,14 @@ namespace Shapez2Multiplayer
                 BufferedSendToAllPackets.Add(packet);
                 return true;
             }
-            byte[] encoded = PacketExtensions.Encode(packet);
+            var encoded = PacketExtensions.Encode(packet);
+            if (encoded == null) return true;
+            var type = PacketExtensions.GetFromType(packet.GetType());
+            if (packet is SendToAllPacket sendToAllPacket) type = PacketExtensions.GetFromType(sendToAllPacket.Packet.GetType());
             bool success = true;
             foreach (var connection in Connected)
             {
-                success = success && connection.Send(encoded);
+                success = success && connection.Send(encoded, type);
             }
             return success;
         }
@@ -160,11 +163,14 @@ namespace Shapez2Multiplayer
                 return;
             }
             if (!Connected.Any(connection => connection != excluded)) return;
-            byte[] encoded = PacketExtensions.Encode(packet);
+            var encoded = PacketExtensions.Encode(packet);
+            if (encoded == null) return;
+            var type = PacketExtensions.GetFromType(packet.GetType());
+            if (packet is SendToAllPacket sendToAllPacket) type = PacketExtensions.GetFromType(sendToAllPacket.Packet.GetType());
             foreach (var connection in Connected)
             {
                 if (connection == excluded) continue;
-                if (!connection.Send(encoded)) Shapez2Multiplayer.logger.Warning.Log($"Dropped packet {packet.GetType().Name} to {connection.Name} because send failed");
+                if (!connection.Send(encoded, type)) Shapez2Multiplayer.logger.Warning.Log($"Dropped packet {packet.GetType().Name} to {connection.Name} because send failed");
             }
         }
         public void SendToAllFrom(IPacket packet, IConnection from)
@@ -175,11 +181,14 @@ namespace Shapez2Multiplayer
                 return;
             }
             if (!Connected.Any(connection => connection != from)) return;
-            byte[] encoded = PacketExtensions.Encode(packet, from.UniversalId);
+            var encoded = PacketExtensions.Encode(packet, from.UniversalId);
+            if (encoded == null) return;
+            var type = PacketExtensions.GetFromType(packet.GetType());
+            if (packet is SendToAllPacket sendToAllPacket) type = PacketExtensions.GetFromType(sendToAllPacket.Packet.GetType());
             foreach (var connection in Connected)
             {
                 if (connection == from) continue;
-                if (!connection.Send(encoded)) Shapez2Multiplayer.logger.Warning.Log($"Dropped packet {packet.GetType().Name} to {connection.Name} because send failed");
+                if (!connection.Send(encoded, type)) Shapez2Multiplayer.logger.Warning.Log($"Dropped packet {packet.GetType().Name} to {connection.Name} because send failed");
             }
         }
         public void SendToAllExcept(IPacket packet, List<IConnection> excluded)
@@ -190,11 +199,14 @@ namespace Shapez2Multiplayer
                 return;
             }
             if (!Connected.Any(connection => !excluded.Contains(connection))) return;
-            byte[] encoded = PacketExtensions.Encode(packet);
+            var encoded = PacketExtensions.Encode(packet);
+            if (encoded == null) return;
+            var type = PacketExtensions.GetFromType(packet.GetType());
+            if (packet is SendToAllPacket sendToAllPacket) type = PacketExtensions.GetFromType(sendToAllPacket.Packet.GetType());
             foreach (var connection in Connected)
             {
                 if (excluded.Contains(connection)) continue;
-                if (!connection.Send(encoded)) Shapez2Multiplayer.logger.Warning.Log($"Dropped packet {packet.GetType().Name} to {connection.Name} because send failed");
+                if (!connection.Send(encoded, type)) Shapez2Multiplayer.logger.Warning.Log($"Dropped packet {packet.GetType().Name} to {connection.Name} because send failed");
             }
         }
         public void SendTo(IPacket packet, IConnection connection)
@@ -205,7 +217,11 @@ namespace Shapez2Multiplayer
                 BufferedSendToPackets.Add(new Tuple<IPacket, IConnection>(packet, connection));
                 return;
             }
-            if (!connection.Send(PacketExtensions.Encode(packet))) Shapez2Multiplayer.logger.Warning.Log($"Dropped packet {packet.GetType().Name} to {connection.Name} because send failed");
+            var encoded = PacketExtensions.Encode(packet);
+            if (encoded == null) return;
+            var type = PacketExtensions.GetFromType(packet.GetType());
+            if (packet is SendToAllPacket sendToAllPacket) type = PacketExtensions.GetFromType(sendToAllPacket.Packet.GetType());
+            if (!connection.Send(encoded, type)) Shapez2Multiplayer.logger.Warning.Log($"Dropped packet {packet.GetType().Name} to {connection.Name} because send failed");
         }
         public void SendTo(IPacket packet, List<IConnection> connections)
         {
@@ -214,11 +230,14 @@ namespace Shapez2Multiplayer
                 BufferedSendToListPackets.Add(new Tuple<IPacket, List<IConnection>>(packet, connections));
                 return;
             }
-            byte[] encoded = PacketExtensions.Encode(packet);
+            var encoded = PacketExtensions.Encode(packet);
+            if (encoded == null) return;
+            var type = PacketExtensions.GetFromType(packet.GetType());
+            if (packet is SendToAllPacket sendToAllPacket) type = PacketExtensions.GetFromType(sendToAllPacket.Packet.GetType());
             foreach (var connection in connections)
             {
                 if (!Connected.Contains(connection) && !Connecting.Contains(connection)) continue;
-                if (!connection.Send(encoded)) Shapez2Multiplayer.logger.Warning.Log($"Dropped packet {packet.GetType().Name} to {connection.Name} because send failed");
+                if (!connection.Send(encoded, type)) Shapez2Multiplayer.logger.Warning.Log($"Dropped packet {packet.GetType().Name} to {connection.Name} because send failed");
             }
         }
         float PingUpdateTimer = 0.0f;

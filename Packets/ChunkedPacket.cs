@@ -1,4 +1,5 @@
 ﻿using Core.Localization;
+using K4os.Hash.xxHash;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,11 +13,12 @@ namespace Shapez2Multiplayer.Packets
     {
         public static readonly Dictionary<uint, Dictionary<uint, ChunkCacheData>> ChunkedPacketCache = new Dictionary<uint, Dictionary<uint, ChunkCacheData>>();
         public static readonly Dictionary<uint, ChunkCacheData> HostChunkedPacketCache = new Dictionary<uint, ChunkCacheData>();
-        public static readonly Queue<Tuple<ChunkedPacket, IConnection>> ToSend = new Queue<Tuple<ChunkedPacket, IConnection>>();
+        public static readonly List<Tuple<ChunkedPacket, IConnection, Packet>> ToSend = new List<Tuple<ChunkedPacket, IConnection, Packet>>();
         public static uint CurrentId = 0;
 
         public byte[] Data;
         public uint Id;
+        public bool cancel = false;
         public bool first = false;
         public bool finished = false;
         public uint Index;
@@ -26,7 +28,7 @@ namespace Shapez2Multiplayer.Packets
         public const float SendDelay = 1f;
         static float SendTimer = 0.0f;
         public ChunkedPacket() { }
-        public static void Send(byte[] data, IConnection sender)
+        public static void Send(byte[] data, IConnection sender, Packet packet)
         {
             var id = CurrentId++;
             uint index = 1;
@@ -34,9 +36,24 @@ namespace Shapez2Multiplayer.Packets
             for (int i = 0; i < data.Length; i += ChunkSize)
             {
                 var chunk = new ChunkedPacket(id, i == 0, data.Skip(i).Take(ChunkSize).ToArray(), i + ChunkSize >= data.Length, index, total);
-                ToSend.Enqueue(new Tuple<ChunkedPacket, IConnection>(chunk, sender));
+                ToSend.Add(new Tuple<ChunkedPacket, IConnection, Packet>(chunk, sender, packet));
                 index++;
             }
+        }
+        public static void Cancel(Packet packet)
+        {
+            foreach (var id in ToSend.Where(c => c.Item3 == packet).Select(c => c.Item1.Id).Distinct())
+            {
+                Cancel(id);
+            }
+        }
+        public static void Cancel(uint id)
+        {
+            var IConnection = ToSend.FirstOrDefault(c => c.Item1.Id == id)?.Item2;
+            if (IConnection == null) return;
+            ToSend.RemoveAll(c => c.Item1.Id == id);
+            MultiplayerCore.socketManager?.SendTo(new ChunkedPacket(id, true), IConnection);
+            MultiplayerCore.connectionManager?.Send(new ChunkedPacket(id, true));
         }
         public ChunkedPacket(uint id, bool first, byte[] data, bool finished, uint index, uint totalChunks)
         {
@@ -47,12 +64,19 @@ namespace Shapez2Multiplayer.Packets
             Index = index;
             TotalChunks = totalChunks;
         }
+        public ChunkedPacket(uint id, bool cancel)
+        {
+            Id = id;
+            this.cancel = cancel;
+        }
 
         public void Decode(Stream stream)
         {
             using BinaryReader reader = new BinaryReader(stream);
-            first = reader.ReadBoolean();
             Id = reader.ReadUInt32();
+            cancel = reader.ReadBoolean();
+            if (cancel) return;
+            first = reader.ReadBoolean();
             Index = reader.ReadUInt32();
             TotalChunks = reader.ReadUInt32();
             var length = reader.ReadInt32();
@@ -60,16 +84,19 @@ namespace Shapez2Multiplayer.Packets
             finished = reader.ReadBoolean();
         }
 
-        public void Encode(Stream stream)
+        public bool Encode(Stream stream)
         {
             using BinaryWriter writer = new BinaryWriter(stream);
-            writer.Write(first);
             writer.Write(Id);
+            writer.Write(cancel);
+            if (cancel) return true;
+            writer.Write(first);
             writer.Write(Index);
             writer.Write(TotalChunks);
             writer.Write(Data.Length);
             writer.Write(Data);
             writer.Write(finished);
+            return true;
         }
 
         public void Handle(IConnection? connection, InfoConnection? routedFrom = null)
@@ -86,6 +113,12 @@ namespace Shapez2Multiplayer.Packets
                 return;
             }
             var cacheData = cache[Id];
+            if (cancel)
+            {
+                cacheData.Stream.Dispose();
+                cache.Remove(Id);
+                return;
+            }
             if (Index != cacheData.Index+1)
             {
                 Shapez2Multiplayer.logger.Error.Log("Chunked packet received out of order with id " + Id + " but index " + Index + " was received instead of " + (cacheData.Index+1) + ". Discarding Entire Chunked Packet.");
@@ -115,8 +148,10 @@ namespace Shapez2Multiplayer.Packets
             if (SendTimer >= SendDelay)
             {
                 SendTimer = 0.0f;
-                if (ToSend.TryDequeue(out var data))
+                if (ToSend.Count > 0)
                 {
+                    var data = ToSend[0];
+                    ToSend.RemoveAt(0);
                     MultiplayerCore.socketManager?.SendTo(data.Item1, data.Item2);
                     MultiplayerCore.connectionManager?.Send(data.Item1);
                 }

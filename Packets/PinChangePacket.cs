@@ -24,11 +24,12 @@ namespace Shapez2Multiplayer.Packets
             Pin = PinFactory.Deserialize(reader.ReadString());
         }
 
-        public void Encode(Stream stream)
+        public bool Encode(Stream stream)
         {
             using BinaryWriter writer = new BinaryWriter(stream);
             writer.Write(Remove);
             writer.Write(Pin.Serialize());
+            return true;
         }
 
         public void Handle(IConnection? connection, InfoConnection? routedFrom = null)

@@ -34,12 +34,13 @@ namespace Shapez2Multiplayer.Packets
             stream.CopyTo(SavegameEncoded);
         }
 
-        public void Encode(Stream stream)
+        public bool Encode(Stream stream)
         {
             var UidBytes = UTF8Encoding.UTF8.GetBytes(Uid);
             stream.WriteByte((byte)UidBytes.Length);
             stream.Write(UidBytes);
             Shapez2Multiplayer.WriteToStream(stream, Savegame);
+            return true;
         }
 
         public void Handle(IConnection? connection, InfoConnection? routedFrom = null)
@@ -56,7 +57,7 @@ namespace Shapez2Multiplayer.Packets
             {
                 IReadOnlyDictionary<Type, IDataSerializer> dataSerializers = Shapez2Multiplayer.MainMenuOrchestratorBackgroundGameOrchestrator.DataSerializers;
                 SavegameBlobReader savegameBlobReader = new SaveFileAccessor(Shapez2Multiplayer.MainMenuOrchestratorLogger).ReadFromStream(SavegameEncoded, dataSerializers);
-                Shapez2Multiplayer.MainMenuOrchestratorFlowNavigator.LoadSession(new GameStartOptionsContinueExisting(savegameBlobReader, false, Uid, false)).ContinueWith(async _ =>
+                Shapez2Multiplayer.MainMenuOrchestratorFlowNavigator.LoadSession(new GameStartOptionsContinueExisting(savegameBlobReader, false, Uid, false)).ContinueWith(_ =>
                 {
                     if (!MultiplayerCore.Client)
                     {

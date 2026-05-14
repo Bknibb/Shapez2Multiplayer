@@ -2048,6 +2048,10 @@ namespace Shapez2Multiplayer
             if (buildingDescriptor.Configuration != null)
             {
                 writer.Write(buildingDescriptor.Configuration.GetType().AssemblyQualifiedName);
+                if (buildingDescriptor.Configuration is FluidProducerConfiguration fluidProducerConfiguration)
+                {
+                    Encode(fluidProducerConfiguration.ProvidingFlow, stream);
+                }
                 buildingDescriptor.Configuration.Sync(serializationVisitor);
             }
             //Encode(buildingDescriptor.State, stream);
@@ -2063,12 +2067,97 @@ namespace Shapez2Multiplayer
             IBuildingConfiguration configuration = null;
             if (reader.ReadBoolean())
             {
-                configuration = (IBuildingConfiguration)Activator.CreateInstance(Type.GetType(reader.ReadString()));
+                var configurationType = Type.GetType(reader.ReadString());
+                if (configurationType == typeof(FluidProducerConfiguration))
+                {
+                    configuration = new FluidProducerConfiguration(DecodeIFluidFlow(stream));
+                } else
+                {
+                    configuration = (IBuildingConfiguration)Activator.CreateInstance(configurationType);
+                }
                 configuration.Sync(serializationVisitor);
             }
             var state = new SimulationStateContainer();
             if (reader.ReadBoolean()) state.Sync(serializationVisitor);
             return new BuildingDescriptor(type, tranform, configuration, state);
+        }
+        public static void Encode(IFluidFlow ifluidFlow, Stream stream)
+        {
+            if (ifluidFlow is BuffableFluidFlow buffableFluidFlow)
+            {
+                stream.WriteByte((byte)FluidFlowTypes.BuffableFluidFlow);
+                Encode(buffableFluidFlow, stream);
+            }
+            else if (ifluidFlow is FluidFlow fluidFlow)
+            {
+                stream.WriteByte((byte)FluidFlowTypes.FluidFlow);
+                Encode(fluidFlow, stream);
+            }
+        }
+        public static IFluidFlow DecodeIFluidFlow(Stream stream)
+        {
+            return (FluidFlowTypes)stream.ReadByte() switch
+            {
+                FluidFlowTypes.BuffableFluidFlow => DecodeBuffableFluidFlow(stream),
+                FluidFlowTypes.FluidFlow => DecodeFluidFlow(stream),
+                _ => null,
+            };
+        }
+        public enum FluidFlowTypes : byte
+        {
+            BuffableFluidFlow,
+            FluidFlow
+        }
+        public static readonly FieldInfo BuffableFluidFlowFlowScaleWithSpeedIdInfo = AccessTools.Field(typeof(BuffableFluidFlow), "FlowScaleWithSpeedId");
+        public static readonly FieldInfo BuffableFluidFlowUnitsPerTickInfo = AccessTools.Field(typeof(BuffableFluidFlow), "UnitsPerTick");
+        public static void Encode(BuffableFluidFlow buffableFluidFlow, Stream stream)
+        {
+            using BinaryWriter writer = new BinaryWriter(stream, UTF8Encoding.UTF8, leaveOpen: true);
+            writer.Write(buffableFluidFlow.LitersPerMinute);
+            Encode((ResearchSpeedId)BuffableFluidFlowFlowScaleWithSpeedIdInfo.GetValue(buffableFluidFlow), stream);
+            Encode((FluidRate)BuffableFluidFlowUnitsPerTickInfo.GetValue(buffableFluidFlow), stream);
+        }
+        public static BuffableFluidFlow DecodeBuffableFluidFlow(Stream stream)
+        {
+            using BinaryReader reader = new BinaryReader(stream, UTF8Encoding.UTF8, leaveOpen: true);
+            var buffableFluidFlow = new BuffableFluidFlow();
+            buffableFluidFlow.LitersPerMinute = reader.ReadInt32();
+            BuffableFluidFlowFlowScaleWithSpeedIdInfo.SetValue(buffableFluidFlow, DecodeResearchSpeedId(stream));
+            BuffableFluidFlowUnitsPerTickInfo.SetValue(buffableFluidFlow, DecodeFluidRate(stream));
+            return buffableFluidFlow;
+        }
+        public static readonly FieldInfo FluidFlowUnitsPerTickInfo = AccessTools.Field(typeof(FluidFlow), "UnitsPerTick");
+        public static void Encode(FluidFlow fluidFlow, Stream stream)
+        {
+            Encode((FluidRate)FluidFlowUnitsPerTickInfo.GetValue(fluidFlow), stream);
+        }
+        public static FluidFlow DecodeFluidFlow(Stream stream)
+        {
+            var fluidFlow = new FluidFlow();
+            FluidFlowUnitsPerTickInfo.SetValue(fluidFlow, DecodeFluidRate(stream));
+            return fluidFlow;
+        }
+        public static readonly FieldInfo FluidRateValueInfo = AccessTools.Field(typeof(FluidRate), "Value");
+        public static readonly ConstructorInfo FluidRateConstructorInfo = AccessTools.Constructor(typeof(FluidRate), new Type[] { typeof(int) });
+        public static void Encode(FluidRate fluidRate, Stream stream)
+        {
+            using BinaryWriter writer = new BinaryWriter(stream, UTF8Encoding.UTF8, leaveOpen: true);
+            writer.Write((int)FluidRateValueInfo.GetValue(fluidRate));
+        }
+        public static FluidRate DecodeFluidRate(Stream stream)
+        {
+            using BinaryReader reader = new BinaryReader(stream, UTF8Encoding.UTF8, leaveOpen: true);
+            return (FluidRate)FluidRateConstructorInfo.Invoke(new object[] { reader.ReadInt32() });
+        }
+        public static void Encode(ResearchSpeedId researchSpeedId, Stream stream)
+        {
+            using BinaryWriter writer = new BinaryWriter(stream, UTF8Encoding.UTF8, leaveOpen: true);
+            writer.Write(researchSpeedId.Id);
+        }
+        public static ResearchSpeedId DecodeResearchSpeedId(Stream stream)
+        {
+            using BinaryReader reader = new BinaryReader(stream, UTF8Encoding.UTF8, leaveOpen: true);
+            return new ResearchSpeedId(reader.ReadString());
         }
         public static void Encode(GlobalTileTransform globalTileTransform, Stream stream)
         {

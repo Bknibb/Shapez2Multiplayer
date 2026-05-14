@@ -27,9 +27,10 @@ namespace Shapez2Multiplayer.Packets
             ResearchManagerSerializedData = Encoding.DecodeResearchManagerSerializedData(stream);
         }
 
-        public void Encode(Stream stream)
+        public bool Encode(Stream stream)
         {
             Encoding.Encode(ResearchManagerSerializedData, stream);
+            return true;
         }
         public static readonly FieldInfo ShapeIdManagerInfo = AccessTools.Field(typeof(ResearchShapeStorage), "ShapeIdManager");
         public static readonly PropertyInfo BlueprintCurrencyManagerTotalAmountSpentInfo = AccessTools.Property(typeof(BlueprintCurrencyManager), nameof(BlueprintCurrencyManager.TotalAmountSpent));

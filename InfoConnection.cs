@@ -1,4 +1,5 @@
 ﻿using ENet;
+using Shapez2Multiplayer.Packets;
 using Steamworks.Data;
 using System;
 using System.Collections.Generic;
@@ -31,7 +32,7 @@ namespace Shapez2Multiplayer
             
         }
 
-        public bool Send(byte[] data)
+        public bool Send(byte[] data, Packets.Packet packet)
         {
             return false;
         }

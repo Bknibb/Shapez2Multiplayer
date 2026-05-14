@@ -34,13 +34,13 @@ namespace Shapez2Multiplayer
             Peer.Disconnect(0);
         }
 
-        public bool Send(byte[] data)
+        public bool Send(byte[] data, Packets.Packet type)
         {
             var compressed = LZ4Pickler.Pickle(data);
             if (compressed.Length > ChunkedPacket.ChunkThreshold)
             {
                 Shapez2Multiplayer.logger.Warning.Log($"Packet too large, sending as chunked");
-                ChunkedPacket.Send(compressed, this);
+                ChunkedPacket.Send(compressed, this, type);
                 return true;
             }
             ENet.Packet packet = new ENet.Packet();

@@ -1,5 +1,6 @@
 ﻿using Game.Placement.Data;
 using HarmonyLib;
+using K4os.Hash.xxHash;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,7 +13,11 @@ namespace Shapez2Multiplayer.Packets
     {
         public IPlacementData PlacementData;
         public PlacementInputHolder PlacementInputHolder;
+        public ulong Hash;
+        public bool Result;
         public PlacementIndicatorDataPacket() { }
+        public static ulong LastHash = 0;
+        public static bool SentToAllConnections = false;
         public PlacementIndicatorDataPacket(IPlacementData placementData, PlacementInputHolder placementInputHolder)
         {
             PlacementData = placementData;
@@ -26,11 +31,15 @@ namespace Shapez2Multiplayer.Packets
             PlacementInputHolder = Encoding.DecodePlacementInputHolder(stream);
         }
 
-        public void Encode(Stream stream)
+        public bool Encode(Stream stream)
         {
             Encoding.serializationVisitor = new BinarySerializationVisitor(true, false, Savegame.CurrentVersion, stream, Shapez2Multiplayer.GameSessionOrchestrator.DataSerializers, Shapez2Multiplayer.logger);
             Encoding.Encode(PlacementData, stream);
             Encoding.Encode(PlacementInputHolder, stream);
+            if (stream is MemoryStream ms) Hash = XXH64.DigestOf(ms.ToArray());
+            Result = Hash != LastHash || !SentToAllConnections;
+            LastHash = Hash;
+            return Result;
         }
         public void Handle(IConnection? connection, InfoConnection? routedFrom = null)
         {

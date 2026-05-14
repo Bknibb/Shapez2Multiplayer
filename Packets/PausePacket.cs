@@ -27,12 +27,13 @@ namespace Shapez2Multiplayer.Packets
             if (reader.ReadBoolean()) PauseReason = Encoding.DecodeText(stream);
         }
 
-        public void Encode(Stream stream)
+        public bool Encode(Stream stream)
         {
             using BinaryWriter writer = new BinaryWriter(stream);
             writer.Write(Pause);
             writer.Write(PauseReason != null);
             if (PauseReason != null) Encoding.Encode(PauseReason, stream);
+            return true;
         }
         public static HUDDialogSimpleInfo? Dialog;
         public void Handle(IConnection? connection, InfoConnection? routedFrom = null)

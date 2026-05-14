@@ -11,6 +11,7 @@
 		<IncludeAssets>compile</IncludeAssets>
 	</PackageReference>
 	<PackageReference Include="K4os.Compression.LZ4" Version="1.3.8" />
+	<PackageReference Include="K4os.Hash.xxHash" Version="1.0.8" />
   </ItemGroup>
 
   <ItemGroup>
@@ -79,6 +80,10 @@
 	  </Reference>
 	  <Reference Include="Game.Content.Features">
 		  <HintPath>$(SPZ2_PATH)\Game.Content.Features.dll</HintPath>
+		  <Private>False</Private>
+	  </Reference>
+	  <Reference Include="Game.Content">
+		  <HintPath>$(SPZ2_PATH)\Game.Content.dll</HintPath>
 		  <Private>False</Private>
 	  </Reference>
     <Reference Include="Game.Orchestration">
@@ -186,6 +191,6 @@
   </PropertyGroup>
 
 	<Target Name="SteamPublish">
-		<Exec Command='sh .\Steam\SteamPublish.sh "$(OutputPath)'/>
+		<Exec Command="sh .\Steam\SteamPublish.sh &quot;$(OutputPath)" />
 	</Target>
 </Project>

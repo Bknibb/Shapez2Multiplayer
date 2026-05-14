@@ -34,7 +34,7 @@ namespace Shapez2Multiplayer.Packets
             }
         }
 
-        public void Encode(Stream stream)
+        public bool Encode(Stream stream)
         {
             Encoding.serializationVisitor = new BinarySerializationVisitor(true, false, Savegame.CurrentVersion, stream, Shapez2Multiplayer.GameSessionOrchestrator.DataSerializers, Shapez2Multiplayer.logger);
             using BinaryWriter writer = new BinaryWriter(stream);
@@ -44,6 +44,7 @@ namespace Shapez2Multiplayer.Packets
             {
                 Encoding.Encode(island.Position, stream);
             }
+            return true;
         }
 
         public void Handle(IConnection? connection, InfoConnection? routedFrom = null)

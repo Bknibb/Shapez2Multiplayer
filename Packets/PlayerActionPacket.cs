@@ -38,10 +38,11 @@ namespace Shapez2Multiplayer.Packets
             PlayerAction = Encoding.DecodePlayerAction(stream);
         }
 
-        public void Encode(Stream stream)
+        public bool Encode(Stream stream)
         {
             Encoding.serializationVisitor = new BinarySerializationVisitor(true, false, Savegame.CurrentVersion, stream, Shapez2Multiplayer.GameSessionOrchestrator.DataSerializers, Shapez2Multiplayer.logger);
             Encoding.Encode(PlayerAction, stream);
+            return true;
         }
 
         public void Handle(IConnection? connection, InfoConnection? routedFrom = null)

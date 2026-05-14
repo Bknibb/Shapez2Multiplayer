@@ -21,10 +21,11 @@ namespace Shapez2Multiplayer.Packets
             Name = reader.ReadString();
         }
 
-        public void Encode(Stream stream)
+        public bool Encode(Stream stream)
         {
             using BinaryWriter writer = new BinaryWriter(stream);
             writer.Write(Name);
+            return true;
         }
 
         public void Handle(IConnection? connection, InfoConnection? routedFrom = null)

@@ -4,6 +4,7 @@ using Game.Placement.Data;
 using Shapez2Multiplayer.Packets;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace Shapez2Multiplayer
@@ -20,7 +21,16 @@ namespace Shapez2Multiplayer
         }
         public static void OnPlacementDataChanged(IPlacementData placementData, PlacementInputHolder placementInput)
         {
-            MultiplayerCore.SendToAll(new PlacementIndicatorDataPacket(placementData, placementInput));
+            var packet = new PlacementIndicatorDataPacket(placementData, placementInput);
+            var previousChunkedPackets = ChunkedPacket.ToSend.Where(c => c.Item3 == Packet.PlacementIndicatorData).Select(c => c.Item1.Id).Distinct().ToList();
+            MultiplayerCore.SendToAll(packet);
+            if (packet.Result)
+            {
+                foreach (var chunkId in previousChunkedPackets)
+                {
+                    ChunkedPacket.Cancel(chunkId);
+                }
+            }
         }
         public static void OnResearchLinearUpgradeManagerChanged(ResearchLinearUpgradeId researchLinearUpgradeId, int level)
         {

@@ -39,7 +39,7 @@ namespace Shapez2Multiplayer
         public void OnConnected()
         {
             Connected = true;
-            if (SteamClient.IsValid) Connection.Send(PacketExtensions.Encode(new PlayerInfoPacket(SteamClient.Name)));
+            if (SteamClient.IsValid) Connection.Send(PacketExtensions.Encode(new PlayerInfoPacket(SteamClient.Name))!, Packets.Packet.PlayerInfo);
             ConnectedEvent();
         }
 

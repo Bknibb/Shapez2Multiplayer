@@ -60,6 +60,7 @@ namespace Shapez2Multiplayer
                 PlayersDrawers.Add(connection.UniversalId, Shapez2Multiplayer.CreateOtherPlayerEntityPlacementDrawer());
                 PlayersBuildingMassSelections.Add(connection.UniversalId, HUDMultiplayerMassSelectionsHost.Instance.CreateOtherPlayerHUDBuildingMassSelection());
                 PlayersIslandMassSelections.Add(connection.UniversalId, HUDMultiplayerMassSelectionsHost.Instance.CreateOtherPlayerHUDIslandMassSelection());
+                PlacementIndicatorDataPacket.SentToAllConnections = false;
             }
         }
 
@@ -87,15 +88,20 @@ namespace Shapez2Multiplayer
         }
         public bool SendToAll(IPacket packet)
         {
-            byte[] encoded = PacketExtensions.Encode(new SendToAllPacket(packet));
-            var ret = ConnectionManager.Connection.Send(encoded);
+            var encoded = PacketExtensions.Encode(new SendToAllPacket(packet));
+            if (encoded == null) return true;
+            var type = PacketExtensions.GetFromType(packet.GetType());
+            var ret = ConnectionManager.Connection.Send(encoded, type);
             if (!ret) Shapez2Multiplayer.logger.Warning.Log($"Dropped packet {packet.GetType().Name} because send failed");
             return ret;
         }
         public bool Send(IPacket packet)
         {
-            byte[] encoded = PacketExtensions.Encode(packet);
-            var ret = ConnectionManager.Connection.Send(encoded);
+            var encoded = PacketExtensions.Encode(packet);
+            if (encoded == null) return true;
+            var type = PacketExtensions.GetFromType(packet.GetType());
+            if (packet is SendToAllPacket sendToAllPacket) type = PacketExtensions.GetFromType(sendToAllPacket.Packet.GetType());
+            var ret = ConnectionManager.Connection.Send(encoded, type);
             if (!ret) Shapez2Multiplayer.logger.Warning.Log($"Dropped packet {packet.GetType().Name} because send failed");
             return ret;
         }

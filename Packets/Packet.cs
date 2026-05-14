@@ -64,14 +64,14 @@ namespace Shapez2Multiplayer.Packets
             else if (type == typeof(ChunkedPacket)) return Packet.ChunkedPacket; 
             throw new ArgumentException("Invalid packet type");
         }
-        public static byte[] Encode(IPacket packet, uint? from = null)
+        public static byte[]? Encode(IPacket packet, uint? from = null)
         {
             using var stream = new MemoryStream();
             using BinaryWriter writer = new BinaryWriter(stream, UTF8Encoding.UTF8, true);
             writer.Write(from != null);
             if (from != null) writer.Write(from.Value);
             stream.WriteByte((byte)GetFromType(packet.GetType()));
-            packet.Encode(stream);
+            if (!packet.Encode(stream)) return null;
             return stream.ToArray();
         }
         public static IPacket Decode(byte[] data, out uint? from)
@@ -94,6 +94,13 @@ namespace Shapez2Multiplayer.Packets
             Shapez2Multiplayer.logger.Info?.Log($"Got packet of type {packet}");
 #endif
             return (IPacket)GetType(packet).GetConstructor(new Type[] { }).Invoke(new object[] { });
+        }
+        public static Packet PacketFromData(byte[] data)
+        {
+            using var stream = new MemoryStream(data);
+            using BinaryReader reader = new BinaryReader(stream, UTF8Encoding.UTF8, true);
+            if (reader.ReadBoolean()) reader.ReadUInt32();
+            return (Packet)reader.ReadByte();
         }
     }
 }

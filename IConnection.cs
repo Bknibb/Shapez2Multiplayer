@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Shapez2Multiplayer.Packets;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -12,6 +13,6 @@ namespace Shapez2Multiplayer
         public string Name => $"Player {UniversalId}";
 
         public void Close();
-        public bool Send(byte[] data);
+        public bool Send(byte[] data, Packet packet);
     }
 }

@@ -14,6 +14,7 @@ namespace Shapez2Multiplayer.Packets
         public static readonly Dictionary<uint, Dictionary<uint, ChunkCacheData>> ChunkedPacketCache = new Dictionary<uint, Dictionary<uint, ChunkCacheData>>();
         public static readonly Dictionary<uint, ChunkCacheData> HostChunkedPacketCache = new Dictionary<uint, ChunkCacheData>();
         public static readonly List<Tuple<ChunkedPacket, IConnection, Packet>> ToSend = new List<Tuple<ChunkedPacket, IConnection, Packet>>();
+        public static uint? WaitingFromId;
         public static uint CurrentId = 0;
 
         public byte[] Data;
@@ -25,19 +26,24 @@ namespace Shapez2Multiplayer.Packets
         public uint TotalChunks;
         public const int ChunkSize = 1024 * 128;
         public const int ChunkThreshold = 1024 * 256;
-        public const float SendDelay = 1f;
-        static float SendTimer = 0.0f;
+        //public const float SendDelay = 1f;
+        //static float SendTimer = 0.0f;
         public ChunkedPacket() { }
         public static void Send(byte[] data, IConnection sender, Packet packet)
         {
             var id = CurrentId++;
             uint index = 1;
             uint total = (uint)MathF.Ceiling((float)data.Length / ChunkSize);
+            var toSendCount = ToSend.Count;
             for (int i = 0; i < data.Length; i += ChunkSize)
             {
                 var chunk = new ChunkedPacket(id, i == 0, data.Skip(i).Take(ChunkSize).ToArray(), i + ChunkSize >= data.Length, index, total);
                 ToSend.Add(new Tuple<ChunkedPacket, IConnection, Packet>(chunk, sender, packet));
                 index++;
+            }
+            if (toSendCount == 0)
+            {
+                SendOne();
             }
         }
         public static void Cancel(Packet packet)
@@ -49,9 +55,14 @@ namespace Shapez2Multiplayer.Packets
         }
         public static void Cancel(uint id)
         {
+            if (ToSend.Count == 0) return;
             var IConnection = ToSend.FirstOrDefault(c => c.Item1.Id == id)?.Item2;
             if (IConnection == null) return;
+            //var containsFirst = ToSend.Any(c => c.Item1.Id == id && c.Item1.first);
+            var needsCancel = ToSend[0].Item1.Id == id && !ToSend[0].Item1.first;
             ToSend.RemoveAll(c => c.Item1.Id == id);
+            //if (containsFirst) return;
+            if (!needsCancel) return;
             MultiplayerCore.socketManager?.SendTo(new ChunkedPacket(id, true), IConnection);
             MultiplayerCore.connectionManager?.Send(new ChunkedPacket(id, true));
         }
@@ -133,6 +144,8 @@ namespace Shapez2Multiplayer.Packets
             {
                 MultiplayerCore.ConnectingDialog.Init("multiplayer.connecting-dialog.title".T(), new CombinedText("multiplayer.connecting-dialog.description".T(), new RawText("\n"), "multiplayer.connecting-dialog.recieving-data".T(), new RawText($" {cacheData.Index}/{cacheData.TotalChunks}")), "multiplayer.connecting-dialog.cancel".T());
             }
+            MultiplayerCore.socketManager?.SendTo(new ChunkReceivedPacket(), connection);
+            MultiplayerCore.connectionManager?.Send(new ChunkReceivedPacket());
             if (!finished) return;
             cacheData.Stream.Seek(0, SeekOrigin.Begin);
             var data = cacheData.Stream.ToArray();
@@ -142,19 +155,30 @@ namespace Shapez2Multiplayer.Packets
             MultiplayerCore.connectionManager?.OnMessage(data);
         }
 
-        public static void Update()
+        //public static void Update()
+        //{
+        //    SendTimer += Time.deltaTime;
+        //    if (SendTimer >= SendDelay)
+        //    {
+        //        SendTimer = 0.0f;
+        //        if (ToSend.Count > 0)
+        //        {
+        //            var data = ToSend[0];
+        //            ToSend.RemoveAt(0);
+        //            MultiplayerCore.socketManager?.SendTo(data.Item1, data.Item2);
+        //            MultiplayerCore.connectionManager?.Send(data.Item1);
+        //        }
+        //    }
+        //}
+        public static void SendOne()
         {
-            SendTimer += Time.deltaTime;
-            if (SendTimer >= SendDelay)
+            if (ToSend.Count > 0)
             {
-                SendTimer = 0.0f;
-                if (ToSend.Count > 0)
-                {
-                    var data = ToSend[0];
-                    ToSend.RemoveAt(0);
-                    MultiplayerCore.socketManager?.SendTo(data.Item1, data.Item2);
-                    MultiplayerCore.connectionManager?.Send(data.Item1);
-                }
+                var data = ToSend[0];
+                ToSend.RemoveAt(0);
+                WaitingFromId = data.Item2.UniversalId;
+                MultiplayerCore.socketManager?.SendTo(data.Item1, data.Item2);
+                MultiplayerCore.connectionManager?.Send(data.Item1);
             }
         }
         public class ChunkCacheData

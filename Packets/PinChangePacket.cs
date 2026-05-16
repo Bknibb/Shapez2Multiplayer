@@ -34,6 +34,7 @@ namespace Shapez2Multiplayer.Packets
 
         public void Handle(IConnection? connection, InfoConnection? routedFrom = null)
         {
+            Shapez2Multiplayer.IgnorePinEvents = true;
             if (Remove)
             {
                 if (!Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.HUDData.Pins.TryUnpin(Pin)) Shapez2Multiplayer.logger.Warning.Log("Failed To Unpin, Likely Desync");
@@ -41,6 +42,7 @@ namespace Shapez2Multiplayer.Packets
             {
                 if (!Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.HUDData.Pins.TryPin(Pin)) Shapez2Multiplayer.logger.Warning.Log("Failed To Pin, Likely Desync");
             }
+            Shapez2Multiplayer.IgnorePinEvents = false;
         }
     }
 }

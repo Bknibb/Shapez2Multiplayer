@@ -295,7 +295,7 @@ namespace Shapez2Multiplayer
         }
         public static void Update()
         {
-            ChunkedPacket.Update();
+            //ChunkedPacket.Update();
             socketManager?.Update();
             connectionManager?.Update();
         }

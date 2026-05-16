@@ -676,5 +676,12 @@ namespace Shapez2Multiplayer
         {
             return !MultiplayerCore.Client;
         }
+        [HarmonyPatch(typeof(HUDPinnedShapesManager), "UnpinCompletedNodes")]
+        [HarmonyPrefix]
+        public static bool HUDPinnedShapesManagerUnpinCompletedNodesPrefix()
+        {
+            return !MultiplayerCore.Client;
+        }
+        public static bool IgnorePinEvents = false;
     }
 }

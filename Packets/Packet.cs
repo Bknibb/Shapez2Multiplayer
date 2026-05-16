@@ -21,7 +21,8 @@ namespace Shapez2Multiplayer.Packets
         UniversalID,
         UpdateBuildingMassSelection,
         UpdateIslandMassSelection,
-        ChunkedPacket
+        Chunked,
+        ChunkReceived
     }
     public static class PacketExtensions
     {
@@ -42,7 +43,8 @@ namespace Shapez2Multiplayer.Packets
                 Packet.UniversalID => typeof(UniversalIDPacket),
                 Packet.UpdateBuildingMassSelection => typeof(UpdateBuildingMassSelectionPacket),
                 Packet.UpdateIslandMassSelection => typeof(UpdateIslandMassSelectionPacket),
-                Packet.ChunkedPacket => typeof(ChunkedPacket),
+                Packet.Chunked => typeof(ChunkedPacket),
+                Packet.ChunkReceived => typeof(ChunkReceivedPacket),
                 _ => throw new ArgumentException("Invalid packet"),
             };
         public static Packet GetFromType(Type type)
@@ -61,7 +63,8 @@ namespace Shapez2Multiplayer.Packets
             else if (type == typeof(UniversalIDPacket)) return Packet.UniversalID;
             else if (type == typeof(UpdateBuildingMassSelectionPacket)) return Packet.UpdateBuildingMassSelection;
             else if (type == typeof(UpdateIslandMassSelectionPacket)) return Packet.UpdateIslandMassSelection;
-            else if (type == typeof(ChunkedPacket)) return Packet.ChunkedPacket; 
+            else if (type == typeof(ChunkedPacket)) return Packet.Chunked; 
+            else if (type == typeof(ChunkReceivedPacket)) return Packet.ChunkReceived;
             throw new ArgumentException("Invalid packet type");
         }
         public static byte[]? Encode(IPacket packet, uint? from = null)

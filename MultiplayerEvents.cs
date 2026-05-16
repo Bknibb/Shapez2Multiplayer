@@ -13,11 +13,13 @@ namespace Shapez2Multiplayer
     {
         public static void OnPinAdded(IPin pin)
         {
-            MultiplayerCore.socketManager.SendToAll(new PinChangePacket(pin, false));
+            if (Shapez2Multiplayer.IgnorePinEvents) return;
+            MultiplayerCore.SendToAll(new PinChangePacket(pin, false));
         }
         public static void OnPinRemoved(IPin pin)
         {
-            MultiplayerCore.socketManager.SendToAll(new PinChangePacket(pin, true));
+            if (Shapez2Multiplayer.IgnorePinEvents) return;
+            MultiplayerCore.SendToAll(new PinChangePacket(pin, true));
         }
         public static void OnPlacementDataChanged(IPlacementData placementData, PlacementInputHolder placementInput)
         {

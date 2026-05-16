@@ -37,13 +37,15 @@ namespace Shapez2Multiplayer
             typeof(PausePacket),
             typeof(DisconnectReasonPacket),
             typeof(UpdateConnectionInfoPacket),
-            typeof(ChunkedPacket)
+            typeof(ChunkedPacket),
+            typeof(ChunkReceivedPacket)
         };
         public static readonly List<Type> AlwaysAllowedToRecieve = new List<Type>()
         {
             typeof(FinishedConnectingPacket),
             typeof(PlayerInfoPacket),
-            typeof(ChunkedPacket)
+            typeof(ChunkedPacket),
+            typeof(ChunkReceivedPacket)
         };
         public ShapezSocketManager(ISocketManager socketManager)
         {
@@ -98,6 +100,12 @@ namespace Shapez2Multiplayer
             Shapez2Multiplayer.logger.Info?.Log("Client disconnected: " + connection.Id);
             HUDMultiplayerPausePanel.instance.RemovePlayer(connection);
             ChunkedPacket.ChunkedPacketCache.Remove(connection.UniversalId);
+            ChunkedPacket.ToSend.RemoveAll(c => c.Item2 == connection);
+            if (ChunkedPacket.WaitingFromId.HasValue && ChunkedPacket.WaitingFromId.Value == connection.UniversalId)
+            {
+                ChunkedPacket.WaitingFromId = null;
+                if (ChunkedPacket.ToSend.Count > 0) ChunkedPacket.SendOne();
+            }
             PlayersDrawers.Remove(connection.UniversalId);
             PlayersBuildingMassSelections.Remove(connection.UniversalId);
             PlayersIslandMassSelections.Remove(connection.UniversalId);

@@ -1,15 +1,10 @@
 ﻿using Core.Localization;
-using Iced.Intel;
 using K4os.Compression.LZ4;
 using Shapez2Multiplayer.Packets;
-using Steamworks;
-using Steamworks.Data;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
+using Unity.Mathematics;
 using UnityEngine;
 using static Shapez2Multiplayer.Packets.ChunkedPacket;
 
@@ -38,7 +33,8 @@ namespace Shapez2Multiplayer
             typeof(DisconnectReasonPacket),
             typeof(UpdateConnectionInfoPacket),
             typeof(ChunkedPacket),
-            typeof(ChunkReceivedPacket)
+            typeof(ChunkReceivedPacket),
+            typeof(UniversalIDPacket)
         };
         public static readonly List<Type> AlwaysAllowedToRecieve = new List<Type>()
         {
@@ -77,13 +73,13 @@ namespace Shapez2Multiplayer
         }
         public void OnConnected(IConnection connection)
         {
-            Shapez2Multiplayer.logger.Info?.Log("Client connected: " + connection.Id);
+            Shapez2Multiplayer.logger.Info?.Log("Client connected: " + connection.UniversalId);
             HUDMultiplayerPausePanel.instance.AddPlayer(connection);
             ChunkedPacket.ChunkedPacketCache.Add(connection.UniversalId, new Dictionary<uint, ChunkCacheData>());
             PlayersDrawers.Add(connection.UniversalId, Shapez2Multiplayer.CreateOtherPlayerEntityPlacementDrawer());
-            PlayersBuildingMassSelections.Add(connection.UniversalId, HUDMultiplayerMassSelectionsHost.Instance.CreateOtherPlayerHUDBuildingMassSelection());
-            PlayersIslandMassSelections.Add(connection.UniversalId, HUDMultiplayerMassSelectionsHost.Instance.CreateOtherPlayerHUDIslandMassSelection());
-            SendTo(new UniversalIDPacket(connection.UniversalId), connection);
+            PlayersBuildingMassSelections.Add(connection.UniversalId, HUDMultiplayerMassSelectionsHost.Instance.CreateOtherPlayerHUDBuildingMassSelection(connection));
+            PlayersIslandMassSelections.Add(connection.UniversalId, HUDMultiplayerMassSelectionsHost.Instance.CreateOtherPlayerHUDIslandMassSelection(connection));
+            if (!connection.Send(PacketExtensions.Encode(new UniversalIDPacket(connection.UniversalId)), Packets.Packet.UniversalID)) Shapez2Multiplayer.logger.Warning.Log($"Failed to send UniversalId Packet");
             SendToAll(new UpdateConnectionInfoPacket(new List<InfoConnection>() { new InfoConnection(connection) }, new List<uint>()));
             Connecting.Add(connection);
             if (Connecting.Count >= 1)
@@ -92,12 +88,12 @@ namespace Shapez2Multiplayer
                 new PausePacket(true, new CombinedText("multiplayer.paused-dialog.description-waitingforplayer".T(), new RawText("\n" + string.Join(", ", Connecting.Select(c => c.Name))))).Handle(null);
             }
             Shapez2Multiplayer.YetToRecieveSavegame.Add(connection);
-            Shapez2Multiplayer.GameSessionOrchestrator.TrySaveCurrentAsync();
+            if (Shapez2Multiplayer.YetToRecieveSavegame.Count == 1) Shapez2Multiplayer.GameSessionOrchestrator.TrySaveCurrentAsync();
         }
 
         public void OnDisconnected(IConnection connection)
         {
-            Shapez2Multiplayer.logger.Info?.Log("Client disconnected: " + connection.Id);
+            Shapez2Multiplayer.logger.Info?.Log("Client disconnected: " + connection.UniversalId);
             HUDMultiplayerPausePanel.instance.RemovePlayer(connection);
             ChunkedPacket.ChunkedPacketCache.Remove(connection.UniversalId);
             ChunkedPacket.ToSend.RemoveAll(c => c.Item2 == connection);
@@ -109,12 +105,14 @@ namespace Shapez2Multiplayer
             PlayersDrawers.Remove(connection.UniversalId);
             PlayersBuildingMassSelections.Remove(connection.UniversalId);
             PlayersIslandMassSelections.Remove(connection.UniversalId);
+            HUDMultiplayerCursors.Instance.RemoveCursor(connection);
             SendToAll(new UpdateConnectionInfoPacket(new List<InfoConnection>(), new List<uint>() { connection.UniversalId }));
             if (Connecting.Remove(connection) && Connecting.Count == 0)
             {
                 SendToAllExcept(new PausePacket(false), connection);
                 new PausePacket(false).Handle(null);
             }
+            Shapez2Multiplayer.HUD.Events.ShowNotification.Invoke(new HUDNotificationData(HUDNotificationType.Info, "multiplayer.player-lost-connection".T().Bind("player-name", new RawText(connection.Name))));
         }
         public void Disconnect(IConnection connection, MultiplayerCore.DisconnectReason? reason = null)
         {
@@ -127,7 +125,6 @@ namespace Shapez2Multiplayer
                 }
             }
             connection.Close();
-            OnDisconnected(connection);
         }
 
         public void OnMessage(IConnection connection, byte[] data)
@@ -248,14 +245,43 @@ namespace Shapez2Multiplayer
                 if (!connection.Send(encoded, type)) Shapez2Multiplayer.logger.Warning.Log($"Dropped packet {packet.GetType().Name} to {connection.Name} because send failed");
             }
         }
-        float PingUpdateTimer = 0.0f;
+        public void ForceUpdateCursor()
+        {
+            SyncCursorTimer = 0.0f;
+            var cursorState = (CursorHoverState)Shapez2Multiplayer.GameCursorManager_StateInfo.GetValue(Shapez2Multiplayer.GameCursorManager);
+            if (ScreenUtils.TryGetWorldCoordinate(Shapez2Multiplayer.GameSessionOrchestrator.Viewport, Shapez2Multiplayer.GameSessionOrchestrator.Viewport.CursorScreenPosition, out var cursorWorldPosition))
+            {
+                LastCursorState = cursorState;
+                LastCursorWorldPosition = (float3)cursorWorldPosition;
+                SendToAll(new CursorPacket((float3)cursorWorldPosition, cursorState));
+            }
+            var viewportIslandLayer = Shapez2Multiplayer.GameSessionOrchestrator.Viewport.IslandLayer;
+            var viewportBuildingLayer = Shapez2Multiplayer.GameSessionOrchestrator.Viewport.BuildingLayer;
+            var viewportShowAllBuildingLayers = Shapez2Multiplayer.GameSessionOrchestrator.Viewport.ShowAllBuildingLayers;
+            var viewportShowAllIslandLayers = Shapez2Multiplayer.GameSessionOrchestrator.Viewport.ShowAllIslandLayers;
+            LastViewportIslandLayer = viewportIslandLayer;
+            LastViewportBuildingLayer = viewportBuildingLayer;
+            LastViewportShowAllBuildingLayers = viewportShowAllBuildingLayers;
+            LastViewportShowAllIslandLayers = viewportShowAllIslandLayers;
+            SendToAll(new ViewportPropertyChangedPacket(viewportIslandLayer, viewportBuildingLayer, viewportShowAllBuildingLayers, viewportShowAllIslandLayers));
+            SendToAll(new PlayerInteractionStateChangedPacket(Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.InteractionState.State));
+        }
+        public float PingUpdateTimer = 0.0f;
         public float SyncResearchTimer = 0.0f;
         float MassSelectionsTimer = 0.0f;
         float SyncLobbyDataTimer = 0.0f;
+        float SyncCursorTimer = 0.0f;
         const float PING_UPDATE_TIME = 5.0f;
         const float SYNC_RESEARCH_TIME = 60.0f * 3f;
         const float SYNC_MASS_SELECTIONS_TIME = 1.0f;
         const float SYNC_LOBBY_DATA_TIME = 60.0f * 5f;
+        const float SYNC_CURSOR_TIME = 0.1f;
+        CursorHoverState? LastCursorState;
+        float3? LastCursorWorldPosition;
+        short? LastViewportIslandLayer;
+        short? LastViewportBuildingLayer;
+        bool? LastViewportShowAllBuildingLayers;
+        bool? LastViewportShowAllIslandLayers;
         public void Update()
         {
             lock (_socketManagers)
@@ -289,6 +315,30 @@ namespace Shapez2Multiplayer
             {
                 SyncLobbyDataTimer = 0.0f;
                 MultiplayerCore.RefreshLobbyData();
+            }
+            SyncCursorTimer += Time.deltaTime;
+            if (SyncCursorTimer >= SYNC_CURSOR_TIME)
+            {
+                SyncCursorTimer = 0.0f;
+                var cursorState = (CursorHoverState)Shapez2Multiplayer.GameCursorManager_StateInfo.GetValue(Shapez2Multiplayer.GameCursorManager);
+                if (ScreenUtils.TryGetWorldCoordinate(Shapez2Multiplayer.GameSessionOrchestrator.Viewport, Shapez2Multiplayer.GameSessionOrchestrator.Viewport.CursorScreenPosition, out var cursorWorldPosition) && (cursorState != LastCursorState || !((float3)cursorWorldPosition).Equals(LastCursorWorldPosition)))
+                {
+                    LastCursorState = cursorState;
+                    LastCursorWorldPosition = (float3)cursorWorldPosition;
+                    SendToAll(new CursorPacket((float3)cursorWorldPosition, cursorState));
+                }
+                var viewportIslandLayer = Shapez2Multiplayer.GameSessionOrchestrator.Viewport.IslandLayer;
+                var viewportBuildingLayer = Shapez2Multiplayer.GameSessionOrchestrator.Viewport.BuildingLayer;
+                var viewportShowAllBuildingLayers = Shapez2Multiplayer.GameSessionOrchestrator.Viewport.ShowAllBuildingLayers;
+                var viewportShowAllIslandLayers = Shapez2Multiplayer.GameSessionOrchestrator.Viewport.ShowAllIslandLayers;
+                if (viewportIslandLayer != LastViewportIslandLayer || viewportBuildingLayer != LastViewportBuildingLayer || viewportShowAllBuildingLayers != LastViewportShowAllBuildingLayers || viewportShowAllIslandLayers != LastViewportShowAllIslandLayers)
+                {
+                    LastViewportIslandLayer = viewportIslandLayer;
+                    LastViewportBuildingLayer = viewportBuildingLayer;
+                    LastViewportShowAllBuildingLayers = viewportShowAllBuildingLayers;
+                    LastViewportShowAllIslandLayers = viewportShowAllIslandLayers;
+                    SendToAll(new ViewportPropertyChangedPacket(viewportIslandLayer, viewportBuildingLayer, viewportShowAllBuildingLayers, viewportShowAllIslandLayers));
+                }
             }
             if (Connecting.Count > 0) return;
             foreach (var packet in BufferedRecievePackets)

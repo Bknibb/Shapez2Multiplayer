@@ -26,6 +26,7 @@
     "multiplayer.connecting-dialog.recieving-data": "Receiving Data...",
     "multiplayer.connecting-dialog.cancel": "CANCEL",
     "multiplayer.report-issue": "REPORT ISSUE",
-    "multiplayer.invite": "INVITE"
+    "multiplayer.invite": "INVITE",
+    "multiplayer.player-lost-connection": "<player-name/> lost connection."
   }
 }

@@ -1,5 +1,5 @@
 ﻿{
-  "Version": "1.0.3",
+  "Version": "1.1.0",
   "Description": "A Multiplayer Mod For Shapez 2",
   "Author": "Bknibb",
   "AffectsSaveGames": false,
@@ -19,6 +19,11 @@
       "ModId": "steam:3720740565",
       "ModTitle": "Steamworks Platform Resolver",
       "Version": "*"
+    },
+    {
+      "ModId": "__UILIB_MODID__",
+      "ModTitle": "Shapez2UILib",
+      "Version": ">=1.0.0"
     }
   ],
   "Conflicts": []

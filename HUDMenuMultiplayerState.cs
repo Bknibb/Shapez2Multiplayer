@@ -1,16 +1,12 @@
 ﻿using Core.Dependency;
 using Core.Localization;
+using Shapez2UILib;
 using Steamworks.Data;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using Unity.Core.View;
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.UI;
-using static Shapez2Multiplayer.MultiplayerCore;
 
 namespace Shapez2Multiplayer
 {
@@ -20,8 +16,6 @@ namespace Shapez2Multiplayer
         [Construct]
         private void Construct()
         {
-            UIBtnBack.GetComponentInChildren<HUDLocalizedText>().Text = Shapez2Multiplayer.MultiplayerButtonTranslation;
-            UIBtnBack.OnClick.AddListener(new UnityAction(this.GoBack));
             BtnRefresh.Text = Shapez2Multiplayer.MultiplayerRefreshTranslation;
             BtnRefresh.OnClick.AddListener(new UnityAction(() => this.RefreshSessionsList()));
             UISessionsContainer = Content.GetComponent<RectTransform>();
@@ -41,6 +35,61 @@ namespace Shapez2Multiplayer
             ClearSessionsList();
             UIEmptyText.gameObject.SetActiveSelfExt(false);
             UIErrorText.gameObject.SetActiveSelfExt(false);
+            //try
+            //{
+            //    serviceDiscovery?.Dispose();
+            //    serviceDiscovery = new ServiceDiscovery();
+            //    serviceDiscovery.ServiceInstanceDiscovered += async (_, e) =>
+            //    {
+            //        var server = new DiscoveredServer();
+            //        Shapez2Multiplayer.logger.Info.Log($"Discovered server");
+            //        foreach (var answer in e.Message.Answers)
+            //        {
+            //            if (answer is ARecord aRecord)
+            //            {
+            //                server.Address = aRecord.Address.ToString();
+            //            }
+            //            else if (answer is TXTRecord tXTRecord)
+            //            {
+            //                server.Properties = tXTRecord.Strings.ToDictionary(str => str.Split('=')[0], str => str.Split('=')[1]);
+            //            }
+            //        }
+            //        Shapez2Multiplayer.logger.Info.Log($"address: {server.Address}");
+            //        UIErrorText.gameObject.SetActiveSelfExt(false);
+            //        UIEmptyText.gameObject.SetActiveSelfExt(false);
+            //        try
+            //        {
+            //            var entry = Sessions.Cast<HUDSessionEntry?>().FirstOrDefault(entry => entry.Entry.Equals(server));
+            //            if (entry != null)
+            //            {
+            //                entry.Entry = server;
+            //                return;
+            //            }
+            //            HUDSavegameEntryPrefab hudsavegameEntryPrefab = RequestChildView<HUDSavegameEntryPrefab>(Shapez2Multiplayer.UISavegamePrefab).PlaceAt(UISessionsContainer, false);
+            //            GameObject hudsavegameEntryGameObject = hudsavegameEntryPrefab.gameObject;
+            //            var children = this.GetChildren();
+            //            children.Remove(hudsavegameEntryPrefab);
+            //            var loadedChildren = this.GetLoadedChildren();
+            //            loadedChildren.Remove(hudsavegameEntryPrefab);
+            //            DestroyImmediate(hudsavegameEntryPrefab); // this destroys the HUDSavegameEntryPrefab not the GameObject
+            //            HUDSessionEntry hudSessionEntry = hudsavegameEntryGameObject.AddComponent<HUDSessionEntry>();
+            //            this.AddChildViewInternal<HUDSessionEntry>(hudSessionEntry);
+            //            hudSessionEntry.FromSavegameEntry(hudsavegameEntryPrefab);
+            //            hudSessionEntry.Entry = server;
+            //            Sessions.Add(hudSessionEntry);
+            //        }
+            //        catch (Exception ex)
+            //        {
+            //            Shapez2Multiplayer.logger.Error.Log("Error while adding session to list.");
+            //            Shapez2Multiplayer.logger.Exception.LogException(ex);
+            //        }
+            //    };
+            //    serviceDiscovery.QueryServiceInstances("_Shapez2Multiplayer._udp");
+            //} catch (Exception ex)
+            //{
+            //    Shapez2Multiplayer.logger.Error.Log("Error while starting service discovery.");
+            //    Shapez2Multiplayer.logger.Exception.LogException(ex);
+            //}
             var lobbies = await MultiplayerCore.FindFriendLobbies();
             if (lobbies == null)
             {
@@ -60,15 +109,15 @@ namespace Shapez2Multiplayer
                     await lobby.RefreshAsync();
                     HUDSavegameEntryPrefab hudsavegameEntryPrefab = RequestChildView<HUDSavegameEntryPrefab>(Shapez2Multiplayer.UISavegamePrefab).PlaceAt(UISessionsContainer, false);
                     GameObject hudsavegameEntryGameObject = hudsavegameEntryPrefab.gameObject;
-                    var children = (List<IView>)Shapez2Multiplayer.HUDComponentChildren.GetValue(this);
+                    var children = this.GetChildren();
                     children.Remove(hudsavegameEntryPrefab);
-                    var loadedChildren = (HashSet<IView>)Shapez2Multiplayer.HUDComponentLoadedChildren.GetValue(this);
+                    var loadedChildren = this.GetLoadedChildren();
                     loadedChildren.Remove(hudsavegameEntryPrefab);
                     DestroyImmediate(hudsavegameEntryPrefab); // this destroys the HUDSavegameEntryPrefab not the GameObject
                     HUDSessionEntry hudSessionEntry = hudsavegameEntryGameObject.AddComponent<HUDSessionEntry>();
-                    Shapez2Multiplayer.componentAddChildViewInternal.MakeGenericMethod(typeof(HUDSessionEntry)).Invoke(this, new object[] { hudSessionEntry });
+                    this.AddChildViewInternal<HUDSessionEntry>(hudSessionEntry);
                     hudSessionEntry.FromSavegameEntry(hudsavegameEntryPrefab);
-                    hudSessionEntry.Entry = lobby;
+                    hudSessionEntry.Entry = new SteamLobby(lobby);
                     Sessions.Add(hudSessionEntry);
                 }
             } catch (Exception ex)
@@ -90,7 +139,7 @@ namespace Shapez2Multiplayer
         }
         private void ClearSessionsList()
         {
-            var children = (List<IView>)Shapez2Multiplayer.HUDComponentChildren.GetValue(this);
+            var children = this.GetChildren();
             foreach (HUDSessionEntry hudSessionEntry in Sessions)
             {
                 children.Remove(hudSessionEntry);
@@ -101,19 +150,64 @@ namespace Shapez2Multiplayer
         }
         protected override void OnDispose()
         {
-            UIBtnBack.OnClick.RemoveListener(new UnityAction(this.GoBack));
-
+            
         }
         public override void GoBack()
         {
             this.Menu.SwitchToState<HUDMenuMainState>(null);
         }
-        public HUDMenuBackButton UIBtnBack;
+        public class DiscoveredServer : ILobbyData, IEquatable<DiscoveredServer>
+        {
+            public string Address;
+            public Dictionary<string, string> Properties;
+            public string AdditionalTitle => Address;
+            public bool Equals(ILobbyData other)
+            {
+                return other is DiscoveredServer discoveredServer && Equals(discoveredServer);
+            }
+            public bool Equals(DiscoveredServer other)
+            {
+                return Address == other.Address;
+            }
+            public string GetData(string key)
+            {
+                return Properties[key];
+            }
+        }
+        public class SteamLobby : ILobbyData, IEquatable<SteamLobby>
+        {
+            public Lobby Lobby;
+            public string AdditionalTitle => Lobby.Owner.Name;
+            public SteamLobby(Lobby lobby)
+            {
+                Lobby = lobby;
+            }
+
+            public bool Equals(ILobbyData other)
+            {
+                return other is SteamLobby steamLobby && Equals(steamLobby);
+            }
+            public bool Equals(SteamLobby other)
+            {
+                return Lobby.Id == other.Lobby.Id;
+            }
+
+            public string GetData(string key)
+            {
+                return Lobby.GetData(key);
+            }
+        }
+        public interface ILobbyData : IEquatable<ILobbyData>
+        {
+            string GetData(string key);
+            string AdditionalTitle { get; }
+        }
         public HUDButton BtnRefresh;
         private HUDLocalizedText UIEmptyText;
         private HUDLocalizedText UIErrorText;
         private RectTransform UISessionsContainer;
         private List<HUDSessionEntry> Sessions = new List<HUDSessionEntry>();
+        //private ServiceDiscovery? serviceDiscovery;
         public HUDInputField DirectConnectInput;
         public HUDButton BtnDirectConnect;
     }

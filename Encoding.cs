@@ -10,15 +10,12 @@ using Game.Placement.Data;
 using Game.Placement.Processing;
 using HarmonyLib;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
-using UnityEngine.UI;
+using Unity.Mathematics;
 
 namespace Shapez2Multiplayer
 {
@@ -97,6 +94,29 @@ namespace Shapez2Multiplayer
         //public static readonly BinaryFormatter bf = new BinaryFormatter(); really inefficient in packet size
         public static ISerializationVisitor serializationVisitor;
         public static readonly FieldInfo PlacementInputHolderInputInfo = AccessTools.Field(typeof(PlacementInputHolder), "Input");
+        public static void Encode(float2 float2, Stream stream)
+        {
+            using BinaryWriter writer = new BinaryWriter(stream, UTF8Encoding.UTF8, leaveOpen: true);
+            writer.Write(float2.x);
+            writer.Write(float2.y);
+        }
+        public static float2 DecodeFloat2(Stream stream)
+        {
+            using BinaryReader reader = new BinaryReader(stream, UTF8Encoding.UTF8, leaveOpen: true);
+            return new float2(reader.ReadSingle(), reader.ReadSingle());
+        }
+        public static void Encode(float3 float3, Stream stream)
+        {
+            using BinaryWriter writer = new BinaryWriter(stream, UTF8Encoding.UTF8, leaveOpen: true);
+            writer.Write(float3.x);
+            writer.Write(float3.y);
+            writer.Write(float3.z);
+        }
+        public static float3 DecodeFloat3(Stream stream)
+        {
+            using BinaryReader reader = new BinaryReader(stream, UTF8Encoding.UTF8, leaveOpen: true);
+            return new float3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+        }
         public static void Encode(ChunkVector chunkVector, Stream stream)
         {
             using BinaryWriter writer = new BinaryWriter(stream, UTF8Encoding.UTF8, leaveOpen: true);
@@ -1468,13 +1488,15 @@ namespace Shapez2Multiplayer
         {
             using BinaryReader reader = new BinaryReader(stream, UTF8Encoding.UTF8, leaveOpen: true);
             IslandId? islandId = null;
+            GlobalChunkCoordinate? globalChunkCoordinate = null;
             if (reader.ReadBoolean())
             {
-                var Coordinate = DecodeGlobalChunkCoordinate(stream);
-                if (Shapez2Multiplayer.MapModel.TryGetIsland(Coordinate, out IslandModel island))
+                globalChunkCoordinate = DecodeGlobalChunkCoordinate(stream);
+                if (Shapez2Multiplayer.MapModel.TryGetIsland(globalChunkCoordinate.Value, out IslandModel island))
                 {
+                    DeletedIslandIds.Remove(globalChunkCoordinate.Value);
                     islandId = island.Id;
-                } else if (DeletedIslandIds.Remove(Coordinate, out IslandId id))
+                } else if (DeletedIslandIds.TryGetValue(globalChunkCoordinate.Value, out IslandId id))
                 {
                     islandId = id;
                 }
@@ -1494,6 +1516,7 @@ namespace Shapez2Multiplayer
             {
                 placeBuildings[i] = DecodePlaceBuildingPayload(stream);
             }
+            if (globalChunkCoordinate.HasValue) DeletedIslandIds.Remove(globalChunkCoordinate.Value);
             var actionModifyIslandPlacePayload = new ActionModifyIsland.PlacePayload(definition, configuration, Origin_GC, rotation, placeBuildings);
             object boxed = actionModifyIslandPlacePayload;
             ActionModifyIslandPlacePayloadIslandId.SetValue(boxed, islandId);
@@ -1604,10 +1627,18 @@ namespace Shapez2Multiplayer
                 }
             }
             //var islandId = DecodeIslandId(stream);
-            IslandId islandId;
+            IslandId? islandId = null;
             if (reader.ReadBoolean())
             {
-                islandId = Shapez2Multiplayer.MapModel.GetIsland(DecodeGlobalChunkCoordinate(stream)).Id;
+                var Coordinate = DecodeGlobalChunkCoordinate(stream);
+                if (Shapez2Multiplayer.MapModel.TryGetIsland(Coordinate, out IslandModel island))
+                {
+                    islandId = island.Id;
+                }
+                else if (DeletedIslandIds.TryGetValue(Coordinate, out IslandId id))
+                {
+                    islandId = id;
+                }
             } else
             {
                 islandId = (IslandId)IslandIdConstructor.Invoke(new object[] { (uint)0 });
@@ -1626,7 +1657,7 @@ namespace Shapez2Multiplayer
             var additionalDataSavegameVersion = (GameVersion)reader.ReadInt32();
             var forceAllowPlace = reader.ReadBoolean();
             var transform_I = DecodeIslandTileTransform(stream);
-            var placeBuildingPayload = new PlaceBuildingPayload(islandId, definition, configuration, transform_I, serializedState, additionalDataSavegameVersion, forceAllowPlace);
+            var placeBuildingPayload = new PlaceBuildingPayload(islandId.Value, definition, configuration, transform_I, serializedState, additionalDataSavegameVersion, forceAllowPlace);
             object boxed = placeBuildingPayload;
             PlaceBuildingPayloadBuildingId.SetValue(boxed, buildingId);
             return (PlaceBuildingPayload)boxed;

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
@@ -22,7 +21,11 @@ namespace Shapez2Multiplayer.Packets
         UpdateBuildingMassSelection,
         UpdateIslandMassSelection,
         Chunked,
-        ChunkReceived
+        ChunkReceived,
+        Cursor,
+        LevelUpPlayerLevelGoal,
+        ViewportPropertyChanged,
+        PlayerInteractionStateChanged
     }
     public static class PacketExtensions
     {
@@ -45,6 +48,10 @@ namespace Shapez2Multiplayer.Packets
                 Packet.UpdateIslandMassSelection => typeof(UpdateIslandMassSelectionPacket),
                 Packet.Chunked => typeof(ChunkedPacket),
                 Packet.ChunkReceived => typeof(ChunkReceivedPacket),
+                Packet.Cursor => typeof(CursorPacket),
+                Packet.LevelUpPlayerLevelGoal => typeof(LevelUpPlayerLevelGoalPacket),
+                Packet.ViewportPropertyChanged => typeof(ViewportPropertyChangedPacket),
+                Packet.PlayerInteractionStateChanged => typeof(PlayerInteractionStateChangedPacket),
                 _ => throw new ArgumentException("Invalid packet"),
             };
         public static Packet GetFromType(Type type)
@@ -65,6 +72,10 @@ namespace Shapez2Multiplayer.Packets
             else if (type == typeof(UpdateIslandMassSelectionPacket)) return Packet.UpdateIslandMassSelection;
             else if (type == typeof(ChunkedPacket)) return Packet.Chunked; 
             else if (type == typeof(ChunkReceivedPacket)) return Packet.ChunkReceived;
+            else if (type == typeof(CursorPacket)) return Packet.Cursor;
+            else if (type == typeof(LevelUpPlayerLevelGoalPacket)) return Packet.LevelUpPlayerLevelGoal;
+            else if (type == typeof(ViewportPropertyChangedPacket)) return Packet.ViewportPropertyChanged;
+            else if (type == typeof(PlayerInteractionStateChangedPacket)) return Packet.PlayerInteractionStateChanged;
             throw new ArgumentException("Invalid packet type");
         }
         public static byte[]? Encode(IPacket packet, uint? from = null)

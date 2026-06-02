@@ -162,13 +162,38 @@
 		  <HintPath>$(SPZ2_PATH)\Game.Tutorial.dll</HintPath>
 		  <Private>False</Private>
 	  </Reference>
+	  <Reference Include="Shapez2UILib">
+		  <HintPath>$(SPZ2_PERSISTENT)\mods\Shapez2UILib\Shapez2UILib.dll</HintPath>
+		  <Private>False</Private>
+	  </Reference>
   </ItemGroup>
+
+	<PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+		<UiLibModId>local:Shapez2UILib</UiLibModId>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
+		<UiLibModId>steam:3735218203</UiLibModId>
+	</PropertyGroup>
+
+	<Target Name="GenerateModJson" AfterTargets="Build">
+
+		<PropertyGroup>
+			<ManifestTemplateContent>
+				$([System.IO.File]::ReadAllText('manifest.template.json'))
+			</ManifestTemplateContent>
+
+			<ProcessedJson>
+				$(ManifestTemplateContent.Replace('__UILIB_MODID__', '$(UiLibModId)'))
+			</ProcessedJson>
+		</PropertyGroup>
+
+		<WriteLinesToFile File="$(TargetDir)manifest.json" Lines="$(ProcessedJson)" Overwrite="true" />
+
+	</Target>
 
   <ItemGroup>
 	<None Update="ENet-CSharp.dll">
-	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	</None>
-	<None Update="manifest.json">
 	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</None>
 	<None Update="translations.json">
@@ -188,6 +213,7 @@
   <PropertyGroup>
 	<OutputPath>$(SPZ2_PERSISTENT)\mods\Shapez2Multiplayer</OutputPath>
 	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+	<AssemblyVersion></AssemblyVersion>
   </PropertyGroup>
 
 	<Target Name="SteamPublish">

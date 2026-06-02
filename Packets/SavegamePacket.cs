@@ -1,13 +1,11 @@
 ﻿using Core.Localization;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
-using ENet;
 using Game.Core.Serialization;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Threading.Tasks;
 using static Shapez2Multiplayer.MultiplayerCore;
 
 namespace Shapez2Multiplayer.Packets
@@ -72,19 +70,21 @@ namespace Shapez2Multiplayer.Packets
                     }
                     MultiplayerCore.connectionManager.StopSeperateThread();
                     MultiplayerCore.connectionManager.HostDrawer = Shapez2Multiplayer.CreateOtherPlayerEntityPlacementDrawer();
-                    MultiplayerCore.connectionManager.HostBuildingMassSelection = HUDMultiplayerMassSelectionsHost.Instance.CreateOtherPlayerHUDBuildingMassSelection();
-                    MultiplayerCore.connectionManager.HostIslandMassSelection = HUDMultiplayerMassSelectionsHost.Instance.CreateOtherPlayerHUDIslandMassSelection();
+                    MultiplayerCore.connectionManager.HostBuildingMassSelection = HUDMultiplayerMassSelectionsHost.Instance.CreateOtherPlayerHUDBuildingMassSelection(null);
+                    MultiplayerCore.connectionManager.HostIslandMassSelection = HUDMultiplayerMassSelectionsHost.Instance.CreateOtherPlayerHUDIslandMassSelection(null);
                     Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.HUDData.Pins.OnPinAdded.Register(MultiplayerEvents.OnPinAdded);
                     Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.HUDData.Pins.OnPinRemoved.Register(MultiplayerEvents.OnPinRemoved);
                     ((IEntityPlacementStateController)Shapez2Multiplayer.EntityPlacementRunner).OnPlacementDataChanged.Register(MultiplayerEvents.OnPlacementDataChanged);
+                    Shapez2Multiplayer.Research.PlayerLevelGoals.OnLeveledUp.Register(MultiplayerEvents.OnResearchPlayerLevelGoalManagerLeveledUpClient);
+                    Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.InteractionState.OnStateChanged.Register(MultiplayerEvents.OnPlayerInteractionStateChanged);
                     MultiplayerCore.connectionManager.FinishedConnecting = true;
                     foreach (var connection in MultiplayerCore.connectionManager.Connections)
                     {
                         if (connection.UniversalId != MultiplayerCore.connectionManager.UniversalId)
                         {
                             MultiplayerCore.connectionManager.PlayersDrawers.Add(connection.UniversalId, Shapez2Multiplayer.CreateOtherPlayerEntityPlacementDrawer());
-                            MultiplayerCore.connectionManager.PlayersBuildingMassSelections.Add(connection.UniversalId, HUDMultiplayerMassSelectionsHost.Instance.CreateOtherPlayerHUDBuildingMassSelection());
-                            MultiplayerCore.connectionManager.PlayersIslandMassSelections.Add(connection.UniversalId, HUDMultiplayerMassSelectionsHost.Instance.CreateOtherPlayerHUDIslandMassSelection());
+                            MultiplayerCore.connectionManager.PlayersBuildingMassSelections.Add(connection.UniversalId, HUDMultiplayerMassSelectionsHost.Instance.CreateOtherPlayerHUDBuildingMassSelection(connection));
+                            MultiplayerCore.connectionManager.PlayersIslandMassSelections.Add(connection.UniversalId, HUDMultiplayerMassSelectionsHost.Instance.CreateOtherPlayerHUDIslandMassSelection(connection));
                         }
                     }
                     MultiplayerCore.connectionManager.Send(new FinishedConnectingPacket());

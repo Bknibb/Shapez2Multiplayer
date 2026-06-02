@@ -1,8 +1,5 @@
-﻿using Steamworks;
-using Steamworks.Data;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace Shapez2Multiplayer
 {

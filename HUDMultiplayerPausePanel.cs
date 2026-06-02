@@ -1,12 +1,8 @@
 ﻿using Core.Dependency;
 using Core.Localization;
-using HarmonyLib;
+using Shapez2UILib;
 using Steamworks;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
@@ -58,8 +54,8 @@ namespace Shapez2Multiplayer
             PlayerObject.transform.localScale = Vector3.one;
             PlayerObject.layer = LayerMask.NameToLayer("UI");
             RectTransform RectTransform = PlayerObject.AddComponent<RectTransform>();
-            GameObject panel = UIStuff.AddPanel(PlayerObject.transform, playerEntry);
-            TextMeshProUGUI NameText = UIStuff.AddTextPrimary(PlayerObject.transform);
+            GameObject panel = UIFactory.AddPanel(PlayerObject.transform, playerEntry);
+            TextMeshProUGUI NameText = UIFactory.AddTextPrimary(PlayerObject.transform);
             NameText.gameObject.name = "NameText";
             NameText.transform.SetParent(PlayerObject.transform);
             NameText.fontStyle = FontStyles.Normal;
@@ -72,7 +68,7 @@ namespace Shapez2Multiplayer
             LayoutElement layoutElement = PlayerObject.AddComponent<LayoutElement>();
             layoutElement.minHeight = 80;
 
-            TextMeshProUGUI PingText = UIStuff.AddTextPrimary(PlayerObject.transform);
+            TextMeshProUGUI PingText = UIFactory.AddTextPrimary(PlayerObject.transform);
             PingText.gameObject.name = "PingText";
             PingText.transform.SetParent(PlayerObject.transform);
             RectTransform PingTextRect = PingText.GetComponent<RectTransform>();
@@ -82,7 +78,7 @@ namespace Shapez2Multiplayer
             PingTextRect.offsetMax = new Vector2(-20, -20);
             playerEntry.PingText = PingText;
 
-            HUDButton KickButton = UIStuff.AddButton(PlayerObject.transform, playerEntry);
+            HUDButton KickButton = UIFactory.AddButton(PlayerObject.transform, playerEntry);
             KickButton.name = "KickButton";
             KickButton.transform.SetParent(PlayerObject.transform);
             RectTransform KickButtonRect = KickButton.GetComponent<RectTransform>();
@@ -91,7 +87,7 @@ namespace Shapez2Multiplayer
             KickButtonRect.offsetMin = new Vector2(20, 20);
             KickButtonRect.offsetMax = new Vector2(-20, -20);
             playerEntry.KickButton = KickButton;
-            ((IDependencyResolver)Shapez2Multiplayer.componentDependencyResolver.GetValue(this)).Inject(playerEntry);
+            this.GetDependencyResolver().Inject(playerEntry);
             Entries.Add(playerEntry);
         }
         public void RemovePlayer(IConnection connection)

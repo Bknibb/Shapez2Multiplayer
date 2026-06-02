@@ -1,21 +1,5 @@
-﻿using Core.Collections;
-using Core.Collections.Scoped;
-using Game.Core.Coordinates;
-using Game.Core.Serialization;
-using Game.Core.Trains;
-using Game.Placement.Data;
-using Game.Placement.Processing;
-using HarmonyLib;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.Serialization.Formatters.Binary;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.RegularExpressions;
 
 namespace Shapez2Multiplayer.Packets
 {
@@ -52,6 +36,15 @@ namespace Shapez2Multiplayer.Packets
             Shapez2Multiplayer.DebugLastAction = PlayerAction;
 #endif
             Shapez2Multiplayer.WaitingActions.Add(PlayerAction);
+            if ((PlayerAction is ResearchUpgradePlayerAction || PlayerAction is LevelUpLinearUpgradePlayerAction) && connection != null)
+            {
+                if (!Shapez2Multiplayer.PlayerActions.TryScheduleAction(PlayerAction))
+                {
+                    Shapez2Multiplayer.logger.Warning.Log("Action Failed, Likely Desync");
+                    Shapez2Multiplayer.WaitingActions.Remove(PlayerAction);
+                    MultiplayerCore.socketManager.SendToAll(new SyncResearchManagerPacket(Shapez2Multiplayer.Research));
+                }
+            }
             if (PlayerAction is ActionModifyBuildings actionModifyBuildings)
             {
                 foreach (var delete in actionModifyBuildings.Data.Delete)

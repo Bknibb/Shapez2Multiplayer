@@ -1,27 +1,26 @@
 ﻿using Core.Dependency;
 using Core.Localization;
-using Core.Logging;
 using Game.Core.GameData.GameModeDefinition;
 using Game.Core.GameData.Presets;
 using Game.Core.Modding;
 using Game.Core.Mode;
 using Game.Core.Research;
 using HarmonyLib;
-using Steamworks.Data;
+using Shapez2UILib;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Events;
+using static Shapez2Multiplayer.HUDMenuMultiplayerState;
 
 namespace Shapez2Multiplayer
 {
     public class HUDSessionEntry : HUDComponent
     {
-        private Lobby _Entry;
+        private ILobbyData _Entry;
         private IGameData GameData;
         private GeneralGameSettings GeneralSettings;
         private ILocalizationResolver LocalizationResolver;
@@ -46,7 +45,7 @@ namespace Shapez2Multiplayer
         private HUDLocalizedText UIStatStructureCount;
         private GameObject UIVersionMismatchOverlay;
         private readonly MethodInfo CreateModList = AccessTools.Method(typeof(HUDSavegameEntryPrefab), "CreateModList");
-        public Lobby Entry
+        public ILobbyData Entry
         {
             get
             {
@@ -75,14 +74,13 @@ namespace Shapez2Multiplayer
             this.UIBtnJoinGame.OnClick.RemoveListener(new UnityAction(this.OnClickJoinButton));
         }
 
-        private void SetSession(Lobby lobby)
+        private void SetSession(ILobbyData lobby)
         {
-            if (_Entry.Id == lobby.Id) return;
             _Entry = lobby;
             SetUIToFailureState();
             try
             {
-                UINameText.Text = new RawText(lobby.GetData("name") + " - " + lobby.Owner.Name);
+                UINameText.Text = new RawText(lobby.GetData("name") + " - " + lobby.AdditionalTitle);
                 if (!IsVerCompatible((GameVersion)int.Parse(lobby.GetData("gamever")), lobby.GetData("mode"), lobby.GetData("scenario")))
                 {
                     UIVersionMismatchOverlay.SetActiveSelfExt(true);
@@ -134,7 +132,7 @@ namespace Shapez2Multiplayer
                 }
             } catch (Exception ex)
             {
-                Logger.Warning?.Log("Failed to read/render lobby data " + lobby.Id + ": " + ex.Message);
+                Logger.Warning?.Log("Failed to read/render lobby data " + lobby.AdditionalTitle + ": " + ex.Message);
                 this.SetUIToFailureState();
                 return;
             }
@@ -151,7 +149,8 @@ namespace Shapez2Multiplayer
         }
         private void StartJoin()
         {
-            MultiplayerCore.JoinLobby(Entry);
+            if (Entry is SteamLobby steamLobby) MultiplayerCore.JoinLobby(steamLobby.Lobby);
+            else if (Entry is DiscoveredServer discoveredServer) MultiplayerCore.DirectConnect(discoveredServer.Address);
         }
         private static readonly FieldInfo UIBtnResumeGameInfo = AccessTools.Field(typeof(HUDSavegameEntryPrefab), "UIBtnResumeGame");
         private static readonly FieldInfo UICompletedIndicatorInfo = AccessTools.Field(typeof(HUDSavegameEntryPrefab), "UICompletedIndicator");
@@ -188,7 +187,7 @@ namespace Shapez2Multiplayer
             UIStatScenario = (HUDLocalizedText)UIStatScenarioInfo.GetValue(savegameEntry);
             UIStatStructureCount = (HUDLocalizedText)UIStatStructureCountInfo.GetValue(savegameEntry);
             UIVersionMismatchOverlay = (GameObject)UIVersionMismatchOverlayInfo.GetValue(savegameEntry);
-            List<HUDComponent> components = new List<HUDComponent>((HUDComponent[])Shapez2Multiplayer.componentChildComponentReferences.GetValue(savegameEntry));
+            List<HUDComponent> components = new List<HUDComponent>(savegameEntry.GetChildComponentReferences());
             for (int i = 0; i < transform.Find("Actions").childCount; i++)
             {
                 var child = transform.Find("Actions").GetChild(i);
@@ -197,7 +196,7 @@ namespace Shapez2Multiplayer
             Destroy(transform.Find("Actions").gameObject);
             components.Remove(transform.Find("BtnDelete").GetComponent<HUDComponent>());
             Destroy(transform.Find("BtnDelete").gameObject);
-            Shapez2Multiplayer.componentChildComponentReferences.SetValue(this, components.ToArray());
+            savegameEntry.SetChildComponentReferences(components.ToArray());
         }
         private void SetUIToFailureState()
         {

@@ -3,9 +3,7 @@ using Game.HUD.QuestArea.PinnedShapes;
 using Game.Placement.Data;
 using Shapez2Multiplayer.Packets;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace Shapez2Multiplayer
 {
@@ -52,6 +50,11 @@ namespace Shapez2Multiplayer
             MultiplayerCore.socketManager.SyncResearchTimer = 0.0f;
             MultiplayerCore.socketManager.SendToAll(new SyncResearchManagerPacket(Shapez2Multiplayer.Research));
         }
+        public static void OnResearchPlayerLevelGoalManagerLeveledUpClient(PlayerLevelGoalId goalId, int level)
+        {
+            if (!MultiplayerCore.Client) throw new Exception("OnResearchPlayerLevelGoalManagerChanged Should Only Be Called On Client");
+            MultiplayerCore.connectionManager.Send(new LevelUpPlayerLevelGoalPacket(goalId));
+        }
         public static void OnResearchUnlockProgressManagerChanged()
         {
             if (!MultiplayerCore.Hosting) throw new Exception("OnResearchUnlockProgressManagerChanged Should Only Be Called On Host");
@@ -63,6 +66,10 @@ namespace Shapez2Multiplayer
             if (!MultiplayerCore.Hosting) throw new Exception("OnResearchUnlockManagerResearchManuallyUnlockedByPlayer Should Only Be Called On Host");
             MultiplayerCore.socketManager.SyncResearchTimer = 0.0f;
             MultiplayerCore.socketManager.SendToAll(new SyncResearchManagerPacket(Shapez2Multiplayer.Research));
+        }
+        public static void OnPlayerInteractionStateChanged()
+        {
+            MultiplayerCore.SendToAll(new PlayerInteractionStateChangedPacket(Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.InteractionState.State));
         }
     }
 }

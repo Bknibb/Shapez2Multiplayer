@@ -1,10 +1,7 @@
 ﻿using K4os.Compression.LZ4;
 using Shapez2Multiplayer.Packets;
-using Steamworks;
 using Steamworks.Data;
-using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace Shapez2Multiplayer
 {

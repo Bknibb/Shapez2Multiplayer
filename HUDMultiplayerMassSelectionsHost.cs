@@ -1,7 +1,4 @@
 ﻿using Core.Dependency;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Shapez2Multiplayer
 {
@@ -44,13 +41,13 @@ namespace Shapez2Multiplayer
                 }
             }
         }
-        public OtherPlayerHUDBuildingMassSelection CreateOtherPlayerHUDBuildingMassSelection()
+        public OtherPlayerHUDBuildingMassSelection CreateOtherPlayerHUDBuildingMassSelection(IConnection? connection)
         {
-            return new OtherPlayerHUDBuildingMassSelection(Player, BuildingPlacementIndicators, TutorialHighlightProvider);
+            return new OtherPlayerHUDBuildingMassSelection(Player, BuildingPlacementIndicators, TutorialHighlightProvider, connection);
         }
-        public OtherPlayerHUDIslandMassSelection CreateOtherPlayerHUDIslandMassSelection()
+        public OtherPlayerHUDIslandMassSelection CreateOtherPlayerHUDIslandMassSelection(IConnection? connection)
         {
-            return new OtherPlayerHUDIslandMassSelection(Map, IslandPreviewDrawer);
+            return new OtherPlayerHUDIslandMassSelection(Map, IslandPreviewDrawer, connection);
         }
 
         protected override void OnDispose()

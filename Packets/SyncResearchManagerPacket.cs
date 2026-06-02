@@ -1,11 +1,9 @@
 ﻿using Core.Events;
 using Game.Core.Research;
 using HarmonyLib;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using System.Text;
 
 namespace Shapez2Multiplayer.Packets
 {
@@ -38,6 +36,9 @@ namespace Shapez2Multiplayer.Packets
         public static readonly MethodInfo ResearchLinearUpgradeManagerSetLevelInfo = AccessTools.Method(typeof(ResearchLinearUpgradeManager), "SetLevel");
         public static readonly FieldInfo ResearchUnlockManager_OnPlayerAboutToUnlockResearchInfo = AccessTools.Field(typeof(ResearchUnlockManager), "_OnPlayerAboutToUnlockResearch");
         public static readonly FieldInfo ResearchUnlockManager_OnResearchManuallyUnlockedByPlayerInfo = AccessTools.Field(typeof(ResearchUnlockManager), "_OnResearchManuallyUnlockedByPlayer");
+        public static readonly FieldInfo ResearchPlayerLevelGoalManagerLevelsInfo = AccessTools.Field(typeof(ResearchPlayerLevelGoalManager), "Levels");
+        public static readonly FieldInfo ResearchPlayerLevelGoalManager_OnLeveledUpInfo = AccessTools.Field(typeof(ResearchPlayerLevelGoalManager), "_OnLeveledUp");
+        public static readonly FieldInfo ResearchPlayerLevelGoalManager_OnChangedInfo = AccessTools.Field(typeof(ResearchPlayerLevelGoalManager), "_OnChanged");
         public void Handle(IConnection? connection, InfoConnection? routedFrom = null)
         {
             if (connection != null)
@@ -86,23 +87,35 @@ namespace Shapez2Multiplayer.Packets
             {
                 researchManager.PlayerLevel.GrantPlayerLevel();
             }
+            var levels = (Dictionary<PlayerLevelGoalId, int>)ResearchPlayerLevelGoalManagerLevelsInfo.GetValue(researchManager.PlayerLevelGoals);
+            var ResearchPlayerLevelGoalManagerOnLeveledUp = (MultiRegisterEvent<PlayerLevelGoalId, int>)ResearchPlayerLevelGoalManager_OnLeveledUpInfo.GetValue(researchManager.PlayerLevelGoals);
+            var ResearchPlayerLevelGoalManagerOnChanged = (MultiRegisterEvent)ResearchPlayerLevelGoalManager_OnChangedInfo.GetValue(researchManager.PlayerLevelGoals);
             foreach (var kvp in ResearchManagerSerializedData.PlayerLevelGoals.GoalLevels)
             {
                 var levelGoalId = new PlayerLevelGoalId(kvp.Key);
                 var currentLevel = researchManager.PlayerLevelGoals.GetLevel(levelGoalId);
                 if (currentLevel < kvp.Value)
                 {
-                    for (int i = currentLevel; i < kvp.Value; i++)
-                    {
-                        if (!researchManager.PlayerLevelGoals.TryLevelUp(levelGoalId))
-                        {
-                            Shapez2Multiplayer.logger.Warning.Log("Failed To Level Up, Likely Desync");
-                            break;
-                        } else
-                        {
-                            Shapez2Multiplayer.GameSessionOrchestratorDependencyContainer.Resolve<IUISoundPlayer>().PlayResearchUnlocked();
-                        }
-                    }
+                    //for (int i = currentLevel; i < kvp.Value; i++)
+                    //{
+                    //    if (!researchManager.PlayerLevelGoals.TryLevelUp(levelGoalId))
+                    //    {
+                    //        Shapez2Multiplayer.logger.Warning.Log("Failed To Level Up, Likely Desync");
+                    //        break;
+                    //    }
+                    //    else
+                    //    {
+                    //        Shapez2Multiplayer.GameSessionOrchestratorDependencyContainer.Resolve<IUISoundPlayer>().PlayResearchUnlocked();
+                    //    }
+                    //}
+                    levels[levelGoalId] = kvp.Value;
+                    ResearchPlayerLevelGoalManagerOnLeveledUp.Invoke(levelGoalId, kvp.Value);
+                    ResearchPlayerLevelGoalManagerOnChanged.Invoke();
+                    Shapez2Multiplayer.GameSessionOrchestratorDependencyContainer.Resolve<IUISoundPlayer>().PlayResearchUnlocked();
+                } else if (currentLevel > kvp.Value)
+                {
+                    levels[levelGoalId] = kvp.Value;
+                    ResearchPlayerLevelGoalManagerOnChanged.Invoke();
                 }
             }
         }

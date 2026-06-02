@@ -1,10 +1,7 @@
 ﻿using Core.Localization;
-using Steamworks.Data;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 
 namespace Shapez2Multiplayer.Packets
 {

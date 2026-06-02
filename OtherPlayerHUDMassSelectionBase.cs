@@ -1,11 +1,7 @@
 ﻿using Core.Collections;
-using Core.Collections.Scoped;
-using Core.Dependency;
-using Core.Events;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Text;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -14,6 +10,7 @@ namespace Shapez2Multiplayer
     public abstract class OtherPlayerHUDMassSelectionBase<TSelectable, TCoordinate> where TSelectable : struct, IEquatable<TSelectable> where TCoordinate : struct
     {
         public ISelection<TSelectable> Selection = new Selection<TSelectable>();
+        public IConnection? connection;
         public void Update(TCoordinate? areaSelectionEnd_G, TCoordinate? areaSelectionStart_G, HUDMassSelectionMode currentMode, HashSet<TSelectable> pendingSelection, List<OtherPlayerHUDMassSelectionBase<TSelectable, TCoordinate>.HoverAnimation> hoverAnimations)
         {
             AreaSelectionEnd_G = areaSelectionEnd_G;
@@ -24,10 +21,24 @@ namespace Shapez2Multiplayer
         }
         public void OnGameUpdate(InputDownstreamContext context, FrameDrawOptions drawOptions)
         {
+            var cursor = connection != null ? HUDMultiplayerCursors.Instance.GetOrAddCursor(connection) : HUDMultiplayerCursors.Instance.GetOrAddHostCursor();
+            if (cursor.PlayerInteractionState.HasValue && cursor.PlayerInteractionState.Value != GetTargetScopeState())
+            {
+                this.DrawAndUpdateHoverAnimations(drawOptions);
+                this.CurrentMode = HUDMassSelectionMode.None;
+                if (this.PendingSelection.Count > 0)
+                {
+                    this.PendingSelection.Clear();
+                }
+                this.Draw_ExistingSelection(drawOptions, this.Selection);
+                return;
+            }
+            TSelectable tselectable = this.FindEntityBelowCursor();
             HUDMassSelectionMode currentMode = this.CurrentMode;
             switch (this.CurrentMode)
             {
                 case HUDMassSelectionMode.None:
+                    this.UpdateMode_None(context, drawOptions, tselectable);
                     break;
                 case HUDMassSelectionMode.SingleUndecided:
                 case HUDMassSelectionMode.SingleAdditive:
@@ -46,6 +57,46 @@ namespace Shapez2Multiplayer
             this.Draw_ExistingSelection(drawOptions, Selection);
             this.DrawAndUpdateHoverAnimations(drawOptions);
         }
+        protected void UpdateMode_None(InputDownstreamContext context, FrameDrawOptions drawOptions, TSelectable selectableBelowCursor)
+        {
+            TSelectable tselectable = default;
+            if (!tselectable.Equals(selectableBelowCursor))
+            {
+                this.SpawnHoverAnimation(drawOptions, selectableBelowCursor);
+            }
+        }
+        protected void SpawnHoverAnimation(FrameDrawOptions options, TSelectable target)
+        {
+            if (this.HoverAnimations.Count > 100)
+            {
+                return;
+            }
+            float realtimeSinceStartup = Time.realtimeSinceStartup;
+            for (int i = 0; i < this.HoverAnimations.Count; i++)
+            {
+                OtherPlayerHUDMassSelectionBase<TSelectable, TCoordinate>.HoverAnimation hoverAnimation = this.HoverAnimations[i];
+                if (hoverAnimation.Target.Equals(target))
+                {
+                    this.HoverAnimations[i] = new OtherPlayerHUDMassSelectionBase<TSelectable, TCoordinate>.HoverAnimation
+                    {
+                        Target = hoverAnimation.Target,
+                        LastHoverTime = realtimeSinceStartup,
+                        InitialHoverTime = hoverAnimation.InitialHoverTime
+                    };
+                    return;
+                }
+            }
+            this.OnHover(target);
+            this.HoverAnimations.Add(new OtherPlayerHUDMassSelectionBase<TSelectable, TCoordinate>.HoverAnimation
+            {
+                Target = target,
+                LastHoverTime = realtimeSinceStartup,
+                InitialHoverTime = realtimeSinceStartup
+            });
+        }
+        protected abstract TSelectable FindEntityBelowCursor();
+        protected abstract void OnHover(TSelectable target);
+        protected abstract PlayerInteractionState GetTargetScopeState();
         protected void UpdateMode_Single(InputDownstreamContext context, FrameDrawOptions drawOptions)
         {
             HUDMassSelectionSelectionType hudmassSelectionSelectionType;

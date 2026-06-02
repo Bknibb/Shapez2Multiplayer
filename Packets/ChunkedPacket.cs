@@ -1,11 +1,8 @@
 ﻿using Core.Localization;
-using K4os.Hash.xxHash;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using UnityEngine;
 
 namespace Shapez2Multiplayer.Packets
 {

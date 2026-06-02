@@ -1,9 +1,5 @@
-﻿using Core.Collections;
-using Game.Core.Coordinates;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
-using System.Text;
 
 namespace Shapez2Multiplayer.Packets
 {

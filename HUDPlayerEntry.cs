@@ -1,10 +1,5 @@
 ﻿using Core.Dependency;
 using Core.Localization;
-using Game.Core.Modding;
-using Shapez2Multiplayer.Packets;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using TMPro;
 using UnityEngine.Events;
 

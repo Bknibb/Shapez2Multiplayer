@@ -1,8 +1,5 @@
 ﻿using Core.Localization;
-using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
 
 namespace Shapez2Multiplayer.Packets
 {

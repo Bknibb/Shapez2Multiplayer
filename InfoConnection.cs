@@ -1,9 +1,4 @@
-﻿using ENet;
-using Shapez2Multiplayer.Packets;
-using Steamworks.Data;
-using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 using System.Text;
 
 namespace Shapez2Multiplayer

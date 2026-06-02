@@ -1,7 +1,5 @@
 ﻿using Shapez2Multiplayer.Packets;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Shapez2Multiplayer
 {

@@ -7,26 +7,19 @@ using Game.HUD.QuestArea.PinnedShapes;
 using Game.Orchestration;
 using Game.Placement.Data;
 using HarmonyLib;
-using HarmonyLib.Tools;
 using Menu.MainMenu;
 using Shapez2Multiplayer.Packets;
-using Steamworks;
-using Steamworks.Data;
+using Shapez2UILib;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Reflection.Emit;
-using System.Runtime.InteropServices;
 using TMPro;
-using Unity.Core.Prefabs;
 using Unity.Core.View;
+using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.Events;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using static System.Collections.Specialized.BitVector32;
 using ILogger = Core.Logging.ILogger;
 
 namespace Shapez2Multiplayer
@@ -84,6 +77,7 @@ namespace Shapez2Multiplayer
         public static readonly FieldInfo HUDButtonUIHoverIndicatorGroupInfo = AccessTools.Field(typeof(HUDButton), "UIHoverIndicatorGroup");
         public static readonly FieldInfo HUDButtonUIMainTransformInfo = AccessTools.Field(typeof(HUDButton), "UIMainTransform");
         public static readonly MethodInfo BuiltinPlacementDrawersGetDrawersInfo = AccessTools.Method("BuiltinPlacementDrawers:GetDrawers", new Type[] { typeof(IMapModel), typeof(GameMode), typeof(IHubObserver), typeof(VisualTheme), typeof(IBuildingPlacementIndicatorAccessor), typeof(IIslandPreviewDrawer), typeof(ITutorialHighlightProvider), typeof(ILogger) });
+        public static readonly FieldInfo GameInputManagerCursorManagerInfo = AccessTools.Field(typeof(GameInputManager), "CursorManager");
         public static ITickableOrchestrator CurrentSubOrchestrator => (ITickableOrchestrator)CurrentSubOrchestratorInfo.GetValue(GameOrchestrator);
         public static GameSessionOrchestrator? GameSessionOrchestrator => CurrentSubOrchestrator is GameSessionOrchestrator gameSessionOrchestrator ? gameSessionOrchestrator : null;
         public static MainMenuOrchestrator? MainMenuOrchestrator => CurrentSubOrchestrator is MainMenuOrchestrator mainMenuOrchestrator ? mainMenuOrchestrator : null;
@@ -136,21 +130,11 @@ namespace Shapez2Multiplayer
         public static ILogger? GameSessionOrchestratorLogger => GameSessionOrchestratorDependencyContainer?.Resolve<ILogger>();
         public static HUD? HUD => CurrentSubOrchestrator is GameSessionOrchestrator gameSessionOrchestrator ? (HUD)GameSessionOrchestratorHUDInfo.GetValue(gameSessionOrchestrator) : null;
         public static Transform? HUDRoot => CurrentSubOrchestrator is GameSessionOrchestrator gameSessionOrchestrator ? (Transform)HUDRootInfo.GetValue(GameSessionOrchestratorHUDInfo.GetValue(gameSessionOrchestrator)) : null;
-        public static readonly Sprite HUDButtonBase = Resources.FindObjectsOfTypeAll<Sprite>().First(t => t.name == "HUDButtonBase");
-        public static readonly Sprite HUDSecondaryButtonBase = Resources.FindObjectsOfTypeAll<Sprite>().First(t => t.name == "HUDSecondaryButtonBase");
-        public static readonly Sprite HUDButtonHover = Resources.FindObjectsOfTypeAll<Sprite>().First(t => t.name == "HUDButtonHover");
-        public static readonly Sprite HUDPrimaryLightPanelMask = Resources.FindObjectsOfTypeAll<Sprite>().First(t => t.name == "HUDPrimaryLightPanelMask");
-        public static readonly Sprite HUDPrimaryLightPanel = Resources.FindObjectsOfTypeAll<Sprite>().First(t => t.name == "HUDPrimaryLightPanel");
-        public static readonly Sprite HUDScrollbarPanelBg = Resources.FindObjectsOfTypeAll<Sprite>().First(t => t.name == "HUDScrollbarPanelBg");
-        public static readonly Sprite HUDAntiAliasedHorizontalScrollDivider = Resources.FindObjectsOfTypeAll<Sprite>().First(t => t.name == "HUDAntiAliasedHorizontalScrollDivider");
-        public static readonly Material DefaultTranslucent = Resources.FindObjectsOfTypeAll<Material>().First(m => m.name == "Default-Translucent");
-        public static readonly Material UIAnimatedPanelMenuMaterial = Resources.FindObjectsOfTypeAll<Material>().First(m => m.name == "UI-AnimatedPanelMenuMaterial");
-        public static readonly Material UISpriteWithMipMapBiasOverride = Resources.FindObjectsOfTypeAll<Material>().First(m => m.name == "UI-SpriteWithMipMapBiasOverride");
-        public static readonly Material UIAnimatedButtonMaterial = Resources.FindObjectsOfTypeAll<Material>().First(m => m.name == "UI-AnimatedButtonMaterial");
-        public static readonly TMP_FontAsset FontMediumSDF = Resources.FindObjectsOfTypeAll<TMP_FontAsset>().First(m => m.name == "Font-Medium SDF");
-        public static readonly TMP_FontAsset FontLightSDF = Resources.FindObjectsOfTypeAll<TMP_FontAsset>().First(m => m.name == "Font-Light SDF");
-        public static readonly FieldInfo HUDComponentChildren = AccessTools.Field(typeof(HUDComponent), "Children");
-        public static readonly FieldInfo HUDComponentLoadedChildren = AccessTools.Field(typeof(HUDComponent), "LoadedChildren");
+        public static GameInputManager? GameInputManager => GameSessionOrchestratorDependencyContainer?.Resolve<GameInputManager>();
+        public static GameCursorManager? GameCursorManager => GameInputManager != null ? (GameCursorManager)GameInputManagerCursorManagerInfo.GetValue(GameInputManager) : null;
+        public static IInteractionMode? InteractionMode => GameSessionOrchestratorDependencyContainer?.Resolve<IInteractionMode>();
+        
+        public static readonly FieldInfo GameCursorManager_StateInfo = AccessTools.Field(typeof(GameCursorManager), "_State");
         public Shapez2Multiplayer(ILogger logger)
         {
             Shapez2Multiplayer.logger = logger;
@@ -164,13 +148,25 @@ namespace Shapez2Multiplayer
             GameOrchestrator = (GameOrchestrator)AccessTools.Field(typeof(GameBootstrapper), "GameOrchestrator").GetValue(null);
             Game = (Game.Orchestration.Game)AccessTools.Field(typeof(GameOrchestrator), "Game").GetValue(GameOrchestrator);
             Application.quitting += Quitting;
+            MainMenuUIRegistrar.RegisterUI<HUDMenuMultiplayerState>(BuildMultiplayerUI, "Multiplayer", MultiplayerButtonTranslation, MultiplayerButtonTranslationId, "menu.play.title", addMainPanel: false);
+            UIHook.ElementHookUI<HUDMultiplayerPausePanel, HUDPauseMenu>(BuildMultiplayerPauseUI, "Multiplayer Pause Panel");
         }
 
         private void Quitting()
         {
             MultiplayerCore.Disconnect(canReturnToMenu: false);
         }
-
+        public static float3 ComputeCursorWorldPosition()
+        {
+            if (GameSessionOrchestrator == null) return float3.zero;
+            if (ScreenUtils.TryGetWorldCoordinate(GameSessionOrchestrator.Viewport, GameSessionOrchestrator.Viewport.CursorScreenPosition, out var worldPosition)) return (float3)worldPosition;
+            return float3.zero;
+        }
+        public static float2 WorldToScreenPosition(float3 worldCoordinate)
+        {
+            if (GameSessionOrchestrator == null) return float2.zero;
+            return (float2)ExtraScreenUtils.WorldToScreenPointDouble(GameSessionOrchestrator.Viewport, worldCoordinate);
+        }
         public static SavegameModsContext? CreateModSignature(IEnumerable<ResolvedMod> mods)
         {
             return Savegame != null ? (SavegameModsContext)CreateModSignatureInfo.Invoke(Savegame, new object[] { mods }) : null;
@@ -209,31 +205,11 @@ namespace Shapez2Multiplayer
             MultiplayerCore.Disconnect(canReturnToMenu: false);
             harmony.UnpatchSelf();
         }
-        public static HUDMenuMultiplayerState multiplayerMenuState;
-        public static readonly FieldInfo componentChildComponentReferences = AccessTools.Field(typeof(HUDComponent), "ChildComponentReferences");
-        public static readonly MethodInfo componentAddChildViewInternal = AccessTools.Method(typeof(HUDComponent), "AddChildViewInternal");
-        public static readonly FieldInfo componentDependencyResolver = AccessTools.Field(typeof(HUDComponent), "DependencyResolver");
-        public static readonly FieldInfo tmpInputFieldRegexValue = AccessTools.Field(typeof(TMP_InputField), "m_RegexValue");
-        public static HUDMenuMultiplayerState BuildMultiplayerUI(HUDMenuPlayState hudMenuPlayState)
+        public static void BuildMultiplayerUI(HUDMenuMultiplayerState hudMenuMultiplayerState)
         {
+            HUDMenuPlayState hudMenuPlayState = hudMenuMultiplayerState.transform.parent.GetComponentInChildren<HUDMenuPlayState>(true);
             GameObject Play = hudMenuPlayState.gameObject;
-            GameObject Multiplayer = new GameObject("Multiplayer");
-            Multiplayer.transform.SetParent(Play.transform.parent);
-            Multiplayer.transform.localPosition = Play.transform.localPosition;
-            Multiplayer.transform.localScale = Vector3.one;
-            RectTransform fromRect = Play.GetComponent<RectTransform>();
-            RectTransform toRect = Multiplayer.AddComponent<RectTransform>();
-            toRect.anchorMin = fromRect.anchorMin;
-            toRect.anchorMax = fromRect.anchorMax;
-            toRect.pivot = fromRect.pivot;
-            toRect.anchoredPosition = fromRect.anchoredPosition;
-            toRect.sizeDelta = fromRect.sizeDelta;
-            Multiplayer.layer = Play.layer;
-            Multiplayer.AddComponent<Canvas>();
-            Multiplayer.AddComponent<GraphicRaycaster>();
-            GameObject BackButton = GameObject.Instantiate(Play.transform.Find("BackButton").gameObject, Multiplayer.transform);
-            BackButton.transform.localPosition = Play.transform.Find("BackButton").localPosition;
-            GameObject MainContent = GameObject.Instantiate(Play.transform.Find("MainContent").gameObject, Multiplayer.transform);
+            GameObject MainContent = GameObject.Instantiate(Play.transform.Find("MainContent").gameObject, hudMenuMultiplayerState.transform);
             MainContent.transform.localPosition = Play.transform.Find("MainContent").localPosition;
             Transform Content = MainContent.GetComponentInChildren<ScrollRect>().content;
             Content.GetChild(0).gameObject.name = "NoSessions";
@@ -241,16 +217,14 @@ namespace Shapez2Multiplayer
             {
                 GameObject.Destroy(Content.GetChild(i).gameObject);
             }
-            GameObject Panel = GameObject.Instantiate(Play.transform.Find("Panel").gameObject, Multiplayer.transform);
+            GameObject Panel = GameObject.Instantiate(Play.transform.Find("Panel").gameObject, hudMenuMultiplayerState.transform);
             Panel.transform.localPosition = Play.transform.Find("Panel").localPosition;
             GameObject RefreshButton = Panel.transform.GetChild(1).gameObject;
             RefreshButton.name = "BtnRefresh";
             GameObject ImportButton = Panel.transform.GetChild(2).gameObject;
             RectTransform importButtonRect = ImportButton.GetComponent<RectTransform>();
             UISavegamePrefab = (PrefabViewReference<HUDSavegameEntryPrefab>)UISavegamePrefabInfo.GetValue(Play.GetComponent<HUDMenuPlayState>());
-            //GameObject InputField = GameObject.Instantiate(((PrefabReference<HUDDialogConfigureScenario>)UIDialogModifySavegame.GetValue(UISavegamePrefab.Resolve())).Resolve().GetComponentInChildren<HUDInputField>().gameObject, Panel.transform);
-            multiplayerMenuState = Multiplayer.AddComponent<HUDMenuMultiplayerState>();
-            HUDInputField InputField = UIStuff.AddInputField(Panel.transform, multiplayerMenuState);
+            HUDInputField InputField = UIFactory.AddInputField(Panel.transform, hudMenuMultiplayerState);
             InputField.transform.localScale = Vector3.one;
             InputField.gameObject.name = "DirectConnectInput";
             TMP_InputField tmp_InputField = InputField.GetComponent<TMP_InputField>();
@@ -284,105 +258,57 @@ namespace Shapez2Multiplayer
                     panelComponents.Add(component);
                 }
             }
-            multiplayerMenuState.UIBtnBack = BackButton.GetComponent<HUDMenuBackButton>();
-            multiplayerMenuState.BtnRefresh = RefreshButton.GetComponent<HUDButton>();
-            multiplayerMenuState.Content = Content;
-            multiplayerMenuState.BtnDirectConnect = DirectConnectButton.GetComponent<HUDButton>();
-            multiplayerMenuState.DirectConnectInput = InputField;
-            componentChildComponentReferences.SetValue(multiplayerMenuState, new HUDComponent[] { BackButton.GetComponent<HUDMenuBackButton>(), MainContent.GetComponentInChildren<HUDTranslucentImageWithCameraResultAsImageSource>(), MainContent.GetComponentInChildren<HUDScrollContainer>(), Panel.GetComponentInChildren<HUDTranslucentImageWithCameraResultAsImageSource>() }.Concat(panelComponents).ToArray());
-            componentChildComponentReferences.SetValue(BackButton.GetComponent<HUDMenuBackButton>(), new HUDComponent[] { BackButton.GetComponentInChildren<HUDLocalizedText>(), BackButton.GetComponentInChildren<HUDAnimatedRoundButton>() });
-            componentChildComponentReferences.SetValue(MainContent.GetComponentInChildren<HUDScrollContainer>(), new HUDComponent[] { Content.GetChild(0).GetComponent<HUDLocalizedText>(), Content.GetChild(1).GetComponent<HUDLocalizedText>() });
-            return multiplayerMenuState;
+            hudMenuMultiplayerState.BtnRefresh = RefreshButton.GetComponent<HUDButton>();
+            hudMenuMultiplayerState.Content = Content;
+            hudMenuMultiplayerState.BtnDirectConnect = DirectConnectButton.GetComponent<HUDButton>();
+            hudMenuMultiplayerState.DirectConnectInput = InputField;
+            hudMenuMultiplayerState.SetChildComponentReferences(new HUDComponent[] { hudMenuMultiplayerState.transform.GetChild(0).GetComponent<HUDMenuBackButton>(), MainContent.GetComponentInChildren<HUDTranslucentImageWithCameraResultAsImageSource>(), MainContent.GetComponentInChildren<HUDScrollContainer>(), Panel.GetComponentInChildren<HUDTranslucentImageWithCameraResultAsImageSource>() }.Concat(panelComponents).ToArray());
+            MainContent.GetComponentInChildren<HUDScrollContainer>().SetChildComponentReferences(new HUDComponent[] { Content.GetChild(0).GetComponent<HUDLocalizedText>(), Content.GetChild(1).GetComponent<HUDLocalizedText>() });
         }
-        public static HUDMultiplayerPausePanel BuildMultiplayerPauseUI(HUDPauseMenu hudPauseMenu)
+        public static void BuildMultiplayerPauseUI(HUDMultiplayerPausePanel hudMultiplayerPausePanel)
         {
-            GameObject MultiplayerPausePanel = new GameObject("Multiplayer Pause Panel");
-            MultiplayerPausePanel.transform.SetParent(hudPauseMenu.transform);
-            MultiplayerPausePanel.transform.localScale = Vector3.one;
-            RectTransform MultiplayerPausePanelRectTransform = MultiplayerPausePanel.AddComponent<RectTransform>();
+            RectTransform MultiplayerPausePanelRectTransform = hudMultiplayerPausePanel.GetComponent<RectTransform>();
             MultiplayerPausePanelRectTransform.anchorMin = new Vector2(1, 0);
             MultiplayerPausePanelRectTransform.anchorMax = new Vector2(1, 0);
             MultiplayerPausePanelRectTransform.offsetMin = new Vector2(-500, 150);
             MultiplayerPausePanelRectTransform.offsetMax = new Vector2(-20, 550);
-            HUDMultiplayerPausePanel hudMultiplayerPausePanel = MultiplayerPausePanel.AddComponent<HUDMultiplayerPausePanel>();
-            //GameObject HUDPrimaryLightPanelMainMenu = GameObject.Instantiate(hudPauseMenu.transform.parent.GetComponentInChildren<HUDIngameSettings>(true).GetComponentInChildren<HUDTranslucentImageWithCameraResultAsImageSource>(true).transform.parent.gameObject, MultiplayerPausePanel.transform);
-            GameObject HUDPrimaryLightPanelMainMenu = UIStuff.AddPanel(MultiplayerPausePanel.transform, hudMultiplayerPausePanel);
-            //GameObject HostButton = GameObject.Instantiate(hudPauseMenu.GetComponentInChildren<HUDFeedbackButton>().transform.GetChild(0).gameObject, MultiplayerPausePanel.transform);
-            HUDButton HostButton = UIStuff.AddButton(MultiplayerPausePanel.transform, hudMultiplayerPausePanel);
+            GameObject HUDPrimaryLightPanelMainMenu = UIFactory.AddPanel(hudMultiplayerPausePanel.transform, hudMultiplayerPausePanel);
+            HUDButton HostButton = UIFactory.AddButton(hudMultiplayerPausePanel.transform, hudMultiplayerPausePanel);
             HostButton.name = "HostButton";
             RectTransform HostButtonRectTransform = HostButton.GetComponent<RectTransform>();
-            //UnityEngine.Object.Destroy(HostButton.GetComponentInChildren<HUDTooltipTarget>());
             HostButtonRectTransform.anchorMin = new Vector2(0, 0);
             HostButtonRectTransform.anchorMax = new Vector2(1, 0);
             HostButtonRectTransform.offsetMin = new Vector2(20, 100);
             HostButtonRectTransform.offsetMax = new Vector2(-20, 160);
-            HUDButton InviteButton = UIStuff.AddButton(MultiplayerPausePanel.transform, hudMultiplayerPausePanel, secondary: true);
+            HUDButton InviteButton = UIFactory.AddButton(hudMultiplayerPausePanel.transform, hudMultiplayerPausePanel, secondary: true);
             InviteButton.name = "InviteButton";
             RectTransform InviteButtonRectTransform = InviteButton.GetComponent<RectTransform>();
             InviteButtonRectTransform.anchorMin = new Vector2(0, 0);
             InviteButtonRectTransform.anchorMax = new Vector2(0.5f, 0);
             InviteButtonRectTransform.offsetMin = new Vector2(20, 20);
             InviteButtonRectTransform.offsetMax = new Vector2(-10, 80);
-            HUDButton ReportIssueButton = UIStuff.AddButton(MultiplayerPausePanel.transform, hudMultiplayerPausePanel, secondary: true);
+            HUDButton ReportIssueButton = UIFactory.AddButton(hudMultiplayerPausePanel.transform, hudMultiplayerPausePanel, secondary: true);
             ReportIssueButton.name = "ReportIssueButton";
             RectTransform ReportIssueButtonRectTransform = ReportIssueButton.GetComponent<RectTransform>();
             ReportIssueButtonRectTransform.anchorMin = new Vector2(0.5f, 0);
             ReportIssueButtonRectTransform.anchorMax = new Vector2(1, 0);
             ReportIssueButtonRectTransform.offsetMin = new Vector2(10, 20);
             ReportIssueButtonRectTransform.offsetMax = new Vector2(-20, 80);
-            //GameObject hudScrollContainer = GameObject.Instantiate(hudPauseMenu.transform.parent.GetComponentInChildren<HUDIngameSettings>(true).GetComponentInChildren<HUDScrollContainer>(true).gameObject, MultiplayerPausePanel.transform);
-            HUDScrollContainer hudScrollContainer = UIStuff.AddScrollContainer(MultiplayerPausePanel.transform, hudMultiplayerPausePanel);
-            UIStuff.AddDivider(hudScrollContainer.transform, false).name = "Divider Top";
-            UIStuff.AddDivider(hudScrollContainer.transform, true).name = "Divider Bottom";
+            HUDScrollContainer hudScrollContainer = UIFactory.AddScrollContainer(hudMultiplayerPausePanel.transform, hudMultiplayerPausePanel);
+            UIFactory.AddDivider(hudScrollContainer.transform, false).name = "Divider Top";
+            UIFactory.AddDivider(hudScrollContainer.transform, true).name = "Divider Bottom";
             RectTransform UIScrollContainerTransform = hudScrollContainer.GetComponent<RectTransform>();
             UIScrollContainerTransform.offsetMin = new Vector2(0, 180);
-            //componentChildComponentReferences.SetValue(hudMultiplayerPausePanel, new HUDComponent[] { HUDPrimaryLightPanelMainMenu.GetComponentInChildren<HUDTranslucentImageWithCameraResultAsImageSource>(), HostButton, hudScrollContainer.GetComponent<HUDScrollContainer>() });
-            //componentChildComponentReferences.SetValue(HostButton.GetComponent<HUDButton>(), new HUDComponent[] { HostButton.GetComponentInChildren<HUDLocalizedText>() });
-            return hudMultiplayerPausePanel;
         }
-        private static readonly MethodInfo addMenuButtonMethod = AccessTools.Method(typeof(HUDMenuMainState), "AddMenuButton");
-        public static readonly IText MultiplayerButtonTranslation = "menu.multiplayer.title".T();
+        public static readonly string MultiplayerButtonTranslationId = "menu.multiplayer.title";
+        public static readonly IText MultiplayerButtonTranslation = MultiplayerButtonTranslationId.T();
         public static readonly IText MultiplayerRefreshTranslation = "menu.multiplayer.refresh".T();
         public static readonly IText MultiplayerDirectConnectTranslation = "menu.multiplayer.directconnect".T();
         public static readonly IText MultiplayerIpAddressTranslation = "menu.multiplayer.ipaddress".T();
-        [HarmonyPatch(typeof(HUDMenuMainState), "AddMenuButton")]
-        [HarmonyPostfix]
-        public static void AddMenuButtonPostfix(IText text, UnityAction action, HUDMenuMainState __instance, IMainMenuStateControl ___Menu)
-        {
-            if (text is LazyLocalizedText lazyText && lazyText.Id.Id == "menu.play.title")
-            {
-                addMenuButtonMethod.Invoke(__instance, new object[] { MultiplayerButtonTranslation, new UnityAction(() => {
-                    ___Menu.SwitchToState<HUDMenuMultiplayerState>(null);
-                }) });
-            }
-        }
-        [HarmonyPatch(typeof(HUDMainMenuUI), "Construct")]
-        [HarmonyPrefix]
-        public static void HUDMainMenuUIConstructPrefix(HUDMainMenuUI __instance, ref HUDComponent[] ___ChildComponentReferences)
-        {
-            var multiplayerUI = BuildMultiplayerUI(__instance.GetComponentInChildren<HUDMenuPlayState>(true));
-            ___ChildComponentReferences = ___ChildComponentReferences.AddToArray(multiplayerUI);
-            componentAddChildViewInternal.MakeGenericMethod(typeof(HUDMenuMultiplayerState)).Invoke(__instance, new object[] { multiplayerUI });
-        }
-        [HarmonyPatch(typeof(MainMenuOrchestrator), "Step_0_2_InitStates")]
-        [HarmonyPrefix]
-        public static void MainMenuOrchestratorInitStatesPrefix(MainMenuOrchestrator __instance, Dictionary<string, MainMenuStateManager.CameraState> ___UICameraStatesDict)
-        {
-            ___UICameraStatesDict.Add("Multiplayer", ___UICameraStatesDict["Play"]);
-        }
-        [HarmonyPatch(typeof(MainMenuOrchestrator), "Step_0_2_InitStates")]
-        [HarmonyPostfix]
-        public static void MainMenuOrchestratorInitStatesPostfix(MainMenuOrchestrator __instance, DependencyContainer ___DependencyContainer)
-        {
-            //___DependencyContainer.Inject(multiplayerMenuState);
-        }
         [HarmonyPatch(typeof(HUDPauseMenu), "Construct")]
         [HarmonyPrefix]
-        public static void HUDPauseMenuConstructPrefix(HUDPauseMenu __instance, ref HUDComponent[] ___ChildComponentReferences, HUDMenuButton ___UISaveBtn)
+        public static void HUDPauseMenuConstructPrefix(HUDMenuButton ___UISaveBtn)
         {
-            var multipalyerPauseUI = BuildMultiplayerPauseUI(__instance);
-            ___ChildComponentReferences = ___ChildComponentReferences.AddToArray(multipalyerPauseUI);
-            componentAddChildViewInternal.MakeGenericMethod(typeof(HUDMultiplayerPausePanel)).Invoke(__instance, new object[] { multipalyerPauseUI });
             if (MultiplayerCore.Client)
             {
                 ___UISaveBtn.SetInteractable(false);
@@ -473,6 +399,14 @@ namespace Shapez2Multiplayer
         public static IPlayerAction DebugLastAction;
 #endif
         [HarmonyPatch(typeof(PlayerActionManager), nameof(PlayerActionManager.TryScheduleAction))]
+        public static bool TryScheduleActionPrefix(IPlayerAction action, ref bool __result)
+        {
+            if (!((action is LevelUpLinearUpgradePlayerAction || action is ResearchUpgradePlayerAction) && MultiplayerCore.Client)) return true;
+            MultiplayerCore.connectionManager.Send(new PlayerActionPacket(action));
+            __result = false;
+            return false;
+        }
+        [HarmonyPatch(typeof(PlayerActionManager), nameof(PlayerActionManager.TryScheduleAction))]
         [HarmonyPostfix]
         public static void TryScheduleActionPostfix(IPlayerAction action, bool __result)
         {
@@ -532,52 +466,172 @@ namespace Shapez2Multiplayer
             WaitingActions.Remove(action);
             return false;
         }
-        //public static IPlayerAction? LastActionOnUndoStack;
+        public static IPlayerAction? LastActionOnUndoStack;
         [HarmonyPatch(typeof(PlayerActionManager), "Undo")]
         [HarmonyPrefix]
         public static void PlayerActionManagerUndoPrefix(PlayerActionManager __instance, List<IPlayerAction> ___UndoStack)
         {
             if (!__instance.HasActionsOnUndoStack)
             {
-                //LastActionOnUndoStack = null;
+                LastActionOnUndoStack = null;
                 return;
             }
-            //LastActionOnUndoStack = ___UndoStack[^1];
-            MultiplayerCore.SendToAll(new PlayerActionPacket(___UndoStack[^1]));
+            LastActionOnUndoStack = ___UndoStack[^1];
+            if (___UndoStack[^1] is ActionModifyIsland actionModifyIsland)
+            {
+                MultiplayerCore.SendToAll(new PlayerActionPacket(new ActionModifyIsland(actionModifyIsland.Map, actionModifyIsland.Executor, new ActionModifyIsland.Payload(actionModifyIsland.Data.Delete, actionModifyIsland.Data.IgnorePlacementBlueprintCost, actionModifyIsland.Data.RefundDeletionBlueprintCost))));
+            } else if (___UndoStack[^1] is ActionModifyBuildings actionModifyBuildings)
+            {
+                MultiplayerCore.SendToAll(new PlayerActionPacket(new ActionModifyBuildings(actionModifyBuildings.Map, actionModifyBuildings.Executor, new ModifyBuildingsPayload(Array.Empty<PlaceBuildingPayload>(), actionModifyBuildings.Data.Delete, actionModifyBuildings.Data.BlueprintCurrencyModification), (bool)Encoding.ActionModifyBuildingsUseBunchEditMode.GetValue(actionModifyBuildings))));
+            } else if (___UndoStack[^1] is CombinedUndoablePlayerAction combinedUndoablePlayerAction)
+            {
+                MultiplayerCore.SendToAll(new PlayerActionPacket(new CombinedUndoablePlayerAction(((List<IPlayerAction>)Encoding.CombinedUndoablePlayerActionActionsInfo.GetValue(combinedUndoablePlayerAction)).Select(action =>
+                {
+                    if (action is ActionModifyIsland actionModifyIsland1)
+                    {
+                        return new ActionModifyIsland(actionModifyIsland1.Map, actionModifyIsland1.Executor, new ActionModifyIsland.Payload(actionModifyIsland1.Data.Delete, actionModifyIsland1.Data.IgnorePlacementBlueprintCost, actionModifyIsland1.Data.RefundDeletionBlueprintCost));
+                    } else if (action is ActionModifyBuildings actionModifyBuildings1)
+                    {
+                        return new ActionModifyBuildings(actionModifyBuildings1.Map, actionModifyBuildings1.Executor, new ModifyBuildingsPayload(Array.Empty<PlaceBuildingPayload>(), actionModifyBuildings1.Data.Delete, actionModifyBuildings1.Data.BlueprintCurrencyModification), (bool)Encoding.ActionModifyBuildingsUseBunchEditMode.GetValue(actionModifyBuildings1));
+                    } else
+                    {
+                        return action;
+                    }
+                }))));
+            } else
+            {
+                MultiplayerCore.SendToAll(new PlayerActionPacket(___UndoStack[^1]));
+            }
         }
-        //[HarmonyPatch(typeof(PlayerActionManager), "Undo")]
-        //[HarmonyPostfix]
-        //public static void PlayerActionManagerUndoPostfix(List<IPlayerAction> ___UndoStack)
-        //{
-        //    if (LastActionOnUndoStack != null && (___UndoStack.Count == 0 || ___UndoStack[^1] != LastActionOnUndoStack))
-        //    {
-        //        MultiplayerCore.SendToAll(new PlayerActionPacket(LastActionOnUndoStack));
-        //    }
-        //    LastActionOnUndoStack = null;
-        //}
-        //public static IPlayerAction? LastActionOnRedoStack;
+        [HarmonyPatch(typeof(PlayerActionManager), "Undo")]
+        [HarmonyPostfix]
+        public static void PlayerActionManagerUndoPostfix(/*List<IPlayerAction> ___UndoStack*/)
+        {
+            //if (LastActionOnUndoStack != null && (___UndoStack.Count == 0 || ___UndoStack[^1] != LastActionOnUndoStack))
+            //{
+            //    MultiplayerCore.SendToAll(new PlayerActionPacket(LastActionOnUndoStack));
+            //}
+            if (LastActionOnUndoStack != null)
+            {
+                if (LastActionOnUndoStack is ActionModifyIsland actionModifyIsland)
+                {
+                    MultiplayerCore.SendToAll(new PlayerActionPacket(new ActionModifyIsland(actionModifyIsland.Map, actionModifyIsland.Executor, new ActionModifyIsland.Payload(actionModifyIsland.Data.Place, actionModifyIsland.Data.IgnorePlacementBlueprintCost, actionModifyIsland.Data.RefundDeletionBlueprintCost))));
+                }
+                else if (LastActionOnUndoStack is ActionModifyBuildings actionModifyBuildings)
+                {
+                    MultiplayerCore.SendToAll(new PlayerActionPacket(new ActionModifyBuildings(actionModifyBuildings.Map, actionModifyBuildings.Executor, new ModifyBuildingsPayload(actionModifyBuildings.Data.Place), (bool)Encoding.ActionModifyBuildingsUseBunchEditMode.GetValue(actionModifyBuildings))));
+                }
+                else if (LastActionOnUndoStack is CombinedUndoablePlayerAction combinedUndoablePlayerAction)
+                {
+                    MultiplayerCore.SendToAll(new PlayerActionPacket(new CombinedUndoablePlayerAction(((List<IPlayerAction>)Encoding.CombinedUndoablePlayerActionActionsInfo.GetValue(combinedUndoablePlayerAction)).Select(action =>
+                    {
+                        if (action is ActionModifyIsland actionModifyIsland1)
+                        {
+                            return new ActionModifyIsland(actionModifyIsland1.Map, actionModifyIsland1.Executor, new ActionModifyIsland.Payload(actionModifyIsland1.Data.Place, actionModifyIsland1.Data.IgnorePlacementBlueprintCost, actionModifyIsland1.Data.RefundDeletionBlueprintCost));
+                        }
+                        else if (action is ActionModifyBuildings actionModifyBuildings1)
+                        {
+                            return new ActionModifyBuildings(actionModifyBuildings1.Map, actionModifyBuildings1.Executor, new ModifyBuildingsPayload(actionModifyBuildings1.Data.Place), (bool)Encoding.ActionModifyBuildingsUseBunchEditMode.GetValue(actionModifyBuildings1));
+                        }
+                        else
+                        {
+                            return action;
+                        }
+                    }))));
+                }
+                else
+                {
+                    MultiplayerCore.SendToAll(new PlayerActionPacket(LastActionOnUndoStack));
+                }
+            }
+            LastActionOnUndoStack = null;
+
+        }
+        public static IPlayerAction? LastActionOnRedoStack;
         [HarmonyPatch(typeof(PlayerActionManager), "Redo")]
         [HarmonyPrefix]
         public static void PlayerActionManagerRedoPrefix(PlayerActionManager __instance, List<IPlayerAction> ___RedoStack)
         {
             if (!__instance.HasActionsOnRedoStack)
             {
-                //LastActionOnRedoStack = null;
+                LastActionOnRedoStack = null;
                 return;
             }
-            //LastActionOnRedoStack = ___RedoStack[0];
-            MultiplayerCore.SendToAll(new PlayerActionPacket(___RedoStack[0]));
+            LastActionOnRedoStack = ___RedoStack[0];
+            if (___RedoStack[0] is ActionModifyIsland actionModifyIsland)
+            {
+                MultiplayerCore.SendToAll(new PlayerActionPacket(new ActionModifyIsland(actionModifyIsland.Map, actionModifyIsland.Executor, new ActionModifyIsland.Payload(actionModifyIsland.Data.Delete, actionModifyIsland.Data.IgnorePlacementBlueprintCost, actionModifyIsland.Data.RefundDeletionBlueprintCost))));
+            }
+            else if (___RedoStack[0] is ActionModifyBuildings actionModifyBuildings)
+            {
+                MultiplayerCore.SendToAll(new PlayerActionPacket(new ActionModifyBuildings(actionModifyBuildings.Map, actionModifyBuildings.Executor, new ModifyBuildingsPayload(Array.Empty<PlaceBuildingPayload>(), actionModifyBuildings.Data.Delete, actionModifyBuildings.Data.BlueprintCurrencyModification), (bool)Encoding.ActionModifyBuildingsUseBunchEditMode.GetValue(actionModifyBuildings))));
+            }
+            else if (___RedoStack[0] is CombinedUndoablePlayerAction combinedUndoablePlayerAction)
+            {
+                MultiplayerCore.SendToAll(new PlayerActionPacket(new CombinedUndoablePlayerAction(((List<IPlayerAction>)Encoding.CombinedUndoablePlayerActionActionsInfo.GetValue(combinedUndoablePlayerAction)).Select(action =>
+                {
+                    if (action is ActionModifyIsland actionModifyIsland1)
+                    {
+                        return new ActionModifyIsland(actionModifyIsland1.Map, actionModifyIsland1.Executor, new ActionModifyIsland.Payload(actionModifyIsland1.Data.Delete, actionModifyIsland1.Data.IgnorePlacementBlueprintCost, actionModifyIsland1.Data.RefundDeletionBlueprintCost));
+                    }
+                    else if (action is ActionModifyBuildings actionModifyBuildings1)
+                    {
+                        return new ActionModifyBuildings(actionModifyBuildings1.Map, actionModifyBuildings1.Executor, new ModifyBuildingsPayload(Array.Empty<PlaceBuildingPayload>(), actionModifyBuildings1.Data.Delete, actionModifyBuildings1.Data.BlueprintCurrencyModification), (bool)Encoding.ActionModifyBuildingsUseBunchEditMode.GetValue(actionModifyBuildings1));
+                    }
+                    else
+                    {
+                        return action;
+                    }
+                }))));
+            }
+            else
+            {
+                MultiplayerCore.SendToAll(new PlayerActionPacket(___RedoStack[0]));
+            }
         }
-        //[HarmonyPatch(typeof(PlayerActionManager), "Redo")]
-        //[HarmonyPostfix]
-        //public static void PlayerActionManagerRedoPostfix(List<IPlayerAction> ___RedoStack)
-        //{
-        //    if (LastActionOnRedoStack != null && (___RedoStack.Count == 0 || ___RedoStack[0] != LastActionOnRedoStack))
-        //    {
-        //        MultiplayerCore.SendToAll(new PlayerActionPacket(LastActionOnRedoStack));
-        //    }
-        //    LastActionOnRedoStack = null;
-        //}
+        [HarmonyPatch(typeof(PlayerActionManager), "Redo")]
+        [HarmonyPostfix]
+        public static void PlayerActionManagerRedoPostfix(List<IPlayerAction> ___RedoStack)
+        {
+            //if (LastActionOnRedoStack != null && (___RedoStack.Count == 0 || ___RedoStack[0] != LastActionOnRedoStack))
+            //{
+            //    MultiplayerCore.SendToAll(new PlayerActionPacket(LastActionOnRedoStack));
+            //}
+            if (LastActionOnRedoStack != null)
+            {
+                if (LastActionOnRedoStack is ActionModifyIsland actionModifyIsland)
+                {
+                    MultiplayerCore.SendToAll(new PlayerActionPacket(new ActionModifyIsland(actionModifyIsland.Map, actionModifyIsland.Executor, new ActionModifyIsland.Payload(actionModifyIsland.Data.Place, actionModifyIsland.Data.IgnorePlacementBlueprintCost, actionModifyIsland.Data.RefundDeletionBlueprintCost))));
+                }
+                else if (LastActionOnRedoStack is ActionModifyBuildings actionModifyBuildings)
+                {
+                    MultiplayerCore.SendToAll(new PlayerActionPacket(new ActionModifyBuildings(actionModifyBuildings.Map, actionModifyBuildings.Executor, new ModifyBuildingsPayload(actionModifyBuildings.Data.Place), (bool)Encoding.ActionModifyBuildingsUseBunchEditMode.GetValue(actionModifyBuildings))));
+                }
+                else if (LastActionOnRedoStack is CombinedUndoablePlayerAction combinedUndoablePlayerAction)
+                {
+                    MultiplayerCore.SendToAll(new PlayerActionPacket(new CombinedUndoablePlayerAction(((List<IPlayerAction>)Encoding.CombinedUndoablePlayerActionActionsInfo.GetValue(combinedUndoablePlayerAction)).Select(action =>
+                    {
+                        if (action is ActionModifyIsland actionModifyIsland1)
+                        {
+                            return new ActionModifyIsland(actionModifyIsland1.Map, actionModifyIsland1.Executor, new ActionModifyIsland.Payload(actionModifyIsland1.Data.Place, actionModifyIsland1.Data.IgnorePlacementBlueprintCost, actionModifyIsland1.Data.RefundDeletionBlueprintCost));
+                        }
+                        else if (action is ActionModifyBuildings actionModifyBuildings1)
+                        {
+                            return new ActionModifyBuildings(actionModifyBuildings1.Map, actionModifyBuildings1.Executor, new ModifyBuildingsPayload(actionModifyBuildings1.Data.Place), (bool)Encoding.ActionModifyBuildingsUseBunchEditMode.GetValue(actionModifyBuildings1));
+                        }
+                        else
+                        {
+                            return action;
+                        }
+                    }))));
+                }
+                else
+                {
+                    MultiplayerCore.SendToAll(new PlayerActionPacket(LastActionOnRedoStack));
+                }
+            }
+            LastActionOnRedoStack = null;
+        }
         public static bool BypassSimulationSpeedCheck = false;
         [HarmonyPatch(typeof(SimulationSpeedManager), "Speed", MethodType.Setter)]
         [HarmonyPrefix]
@@ -637,6 +691,14 @@ namespace Shapez2Multiplayer
             var hudMultiplayerMassSelectionHost = hudMultiplayerMassSelectionsHostGameObject.AddComponent<HUDMultiplayerMassSelectionsHost>();
             ___DependencyContainer.Inject(hudMultiplayerMassSelectionHost);
             ___Parts.Add(hudMultiplayerMassSelectionHost);
+            GameObject hudMultiplayerCursorsGameObject = new GameObject("HUDMultiplayerCursors");
+            hudMultiplayerCursorsGameObject.transform.SetParent(___Root);
+            hudMultiplayerCursorsGameObject.transform.SetSiblingIndex(0);
+            hudMultiplayerCursorsGameObject.transform.localScale = Vector3.one;
+            hudMultiplayerCursorsGameObject.layer = LayerMask.NameToLayer("UI");
+            var hudMultiplayerCursors = hudMultiplayerCursorsGameObject.AddComponent<HUDMultiplayerCursors>();
+            ___DependencyContainer.Inject(hudMultiplayerCursors);
+            ___Parts.Add(hudMultiplayerCursors);
         }
         [HarmonyPatch(typeof(HUD), nameof(HUD.Dispose))]
         [HarmonyPrefix]
@@ -645,7 +707,7 @@ namespace Shapez2Multiplayer
             List<HUDPart> toRemove = new List<HUDPart>();
             foreach (HUDPart part in ___Parts)
             {
-                if (part is HUDMultiplayerMassSelectionsHost)
+                if (part is HUDMultiplayerMassSelectionsHost || part is HUDMultiplayerCursors)
                 {
                     part.Dispose();
                     toRemove.Add(part);
@@ -683,5 +745,28 @@ namespace Shapez2Multiplayer
             return !MultiplayerCore.Client;
         }
         public static bool IgnorePinEvents = false;
+        public static PropertyInfo HUDIslandGridVisualizationAreIslandsUnlockedInfo = AccessTools.Property(typeof(HUDIslandGridVisualization), "AreIslandsUnlocked");
+        [HarmonyPatch(typeof(HUDIslandGridVisualization), "Draw")]
+        [HarmonyPrefix]
+        public static void HUDIslandGridVisualizationDrawPrefix(HUDIslandGridVisualization __instance, FrameDrawOptionsNoLOD options, float ___Alpha)
+        {
+            if (Shapez2Multiplayer.GameSessionOrchestrator == null) return;
+            if (!(bool)HUDIslandGridVisualizationAreIslandsUnlockedInfo.GetGetMethod(true).Invoke(__instance, new object[] { })) return;
+            InstancedMeshManager ui = options.Renderers.UI;
+            IMeshReference planeMesh = GeometryHelpers.PlaneMesh;
+            MaterialReference islandGridHelperMaterialCursor = options.Theme.BaseResources.IslandGridHelperMaterialCursor;
+            foreach (var cursor in HUDMultiplayerCursors.Instance.Cursors)
+            {
+                //var screenPosition = (float2)ExtraScreenUtils.WorldToScreenPointDouble(Shapez2Multiplayer.GameSessionOrchestrator.Viewport, cursor.WorldPosition);
+                //if (screenPosition.x < 0 || screenPosition.y < 0 || screenPosition.x > Screen.width || screenPosition.y > Screen.height) continue;
+                //if (RaycastHelpers.TryGetCursorPointOnVirtualPlane(screenPosition, (double)options.Viewport.Height, options.Viewport.MainCamera, out var planePosition, out var enter))
+                //{
+
+                //}
+                float3 offset = cursor.WorldPosition + new float3(0f, -4.01f, 0f);
+                float3 target = new float3(190f * ___Alpha);
+                ui.Add(planeMesh, islandGridHelperMaterialCursor, FastMatrix.TranslateScale(in offset, in target), ShadowToken.Off, ShadowToken.Off);
+            }
+        }
     }
 }

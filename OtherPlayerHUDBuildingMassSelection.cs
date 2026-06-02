@@ -1,22 +1,20 @@
 ﻿using Core.Collections.Scoped;
-using Core.Dependency;
 using Game.Core.Coordinates;
 using Game.Placement.Data;
 using Game.Placement.Processing;
-using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using UnityEngine.UI;
+using Unity.Mathematics;
+using UnityEngine;
 
 namespace Shapez2Multiplayer
 {
     public class OtherPlayerHUDBuildingMassSelection : OtherPlayerHUDMassSelectionBase<BuildingModel, GlobalTileCoordinate>
     {
-        public OtherPlayerHUDBuildingMassSelection(Player player, IBuildingPlacementIndicatorAccessor buildingPlacementIndicators, ITutorialHighlightProvider tutorialHighlightProvider)
+        public OtherPlayerHUDBuildingMassSelection(Player player, IBuildingPlacementIndicatorAccessor buildingPlacementIndicators, ITutorialHighlightProvider tutorialHighlightProvider, IConnection? connection)
         {
             this.BuildingPlacementIndicatorDrawer = new BuildingPlacementIndicatorDrawer(player.CurrentMap, buildingPlacementIndicators, tutorialHighlightProvider);
+            this.connection = connection;
         }
         public void Update(HUDBuildingMassSelection hudBuildingMassSelection)
         {
@@ -25,6 +23,28 @@ namespace Shapez2Multiplayer
                 (HUDMassSelectionMode)Encoding.HUDBuildingMassSelectionAreaCurrentModeInfo.GetValue(hudBuildingMassSelection),
                 (HashSet<BuildingModel>)Encoding.HUDBuildingMassSelectionAreaPendingSelectionInfo.GetValue(hudBuildingMassSelection),
                 HoverAnimationsFromIList((IList)Encoding.HUDBuildingMassSelectionAreaHoverAnimationsInfo.GetValue(hudBuildingMassSelection)));
+        }
+        protected override void OnHover(BuildingModel target)
+        {
+            
+        }
+        protected override BuildingModel FindEntityBelowCursor()
+        {
+            var cursor = connection != null ? HUDMultiplayerCursors.Instance.GetOrAddCursor(connection) : HUDMultiplayerCursors.Instance.GetOrAddHostCursor();
+            var screenPosition = (float2)ExtraScreenUtils.WorldToScreenPointDouble(Shapez2Multiplayer.GameSessionOrchestrator.Viewport, cursor.WorldPosition);
+            if (screenPosition.x < 0 || screenPosition.y < 0 || screenPosition.x > Screen.width || screenPosition.y > Screen.height)
+            {
+                return BuildingModel.Invalid;
+            }
+            if (ExtraScreenUtils.TryFindBuildingAtScreenPosition(Shapez2Multiplayer.GameSessionOrchestrator.Viewport, screenPosition, Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.CurrentMap, out var buildingModel, cursor.ViewportIslandLayer, cursor.ViewportBuildingLayer, cursor.ViewportShowAllBuildingLayers) && !Shapez2Multiplayer.InteractionMode.IsBuildingSelectable(Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer, buildingModel.DefinitionGroup().Id, buildingModel.Island.Definition.Id))
+            {
+                return BuildingModel.Invalid;
+            }
+            return buildingModel;
+        }
+        protected override PlayerInteractionState GetTargetScopeState()
+        {
+            return PlayerInteractionState.BuildingsIdle;
         }
         protected override void Draw_PendingSelection(FrameDrawOptions options, IReadOnlyCollection<BuildingModel> entities, HUDMassSelectionSelectionType type)
         {

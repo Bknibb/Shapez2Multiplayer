@@ -6,13 +6,9 @@ using Shapez2Multiplayer.Packets;
 using Steamworks;
 using Steamworks.Data;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
-using static Shapez2Multiplayer.MultiplayerCore;
 
 namespace Shapez2Multiplayer
 {
@@ -26,6 +22,8 @@ namespace Shapez2Multiplayer
         public static bool Client => connectionManager != null;
         public static uint CurrentUniversalId = 1;
         public static HUDDialogSimpleInfo? ConnectingDialog;
+        //public static ServiceProfile? serviceProfile;
+        //public static ServiceDiscovery? serviceDiscovery;
         public static void Initialize()
         {
             SteamFriends.OnGameLobbyJoinRequested += async (lobby, friend) =>
@@ -119,17 +117,7 @@ namespace Shapez2Multiplayer
                 Lobby = lobby;
                 lobby.Value.SetFriendsOnly();
                 lobby.Value.SetJoinable(true);
-                try
-                {
-                    RefreshLobbyData();
-                }
-                catch (Exception ex)
-                {
-                    Shapez2Multiplayer.logger.Warning?.Log("Failed to set lobby data");
-                    Shapez2Multiplayer.logger.Warning?.LogException(ex);
-                }
                 Shapez2Multiplayer.logger.Info?.Log("Lobby created with id: " + lobby.Value.Id);
-                
             }
             if (ENet && !(Hosting && socketManager.SocketManagers.Any(s => s is ENetSocketManager)))
             {
@@ -145,6 +133,16 @@ namespace Shapez2Multiplayer
                     socketManager = new ShapezSocketManager(new ENetSocketManager(server));
                 }
                 Shapez2Multiplayer.logger.Info?.Log("Started ENet server on port 7777");
+                //serviceDiscovery = new ServiceDiscovery();
+            }
+            try
+            {
+                RefreshLobbyData();
+            }
+            catch (Exception ex)
+            {
+                Shapez2Multiplayer.logger.Warning?.Log("Failed to refresh lobby data");
+                Shapez2Multiplayer.logger.Warning?.LogException(ex);
             }
             if (Hosting)
             {
@@ -156,31 +154,66 @@ namespace Shapez2Multiplayer
                 Shapez2Multiplayer.Research.PlayerLevelGoals.OnChanged.Register(MultiplayerEvents.OnResearchPlayerLevelGoalManagerChanged);
                 Shapez2Multiplayer.Research.Progress.OnChanged.Register(MultiplayerEvents.OnResearchUnlockProgressManagerChanged);
                 Shapez2Multiplayer.Research.UnlockManager.OnResearchManuallyUnlockedByPlayer.Register(MultiplayerEvents.OnResearchUnlockManagerResearchManuallyUnlockedByPlayer);
+                Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.InteractionState.OnStateChanged.Register(MultiplayerEvents.OnPlayerInteractionStateChanged);
             }
         }
         public static void RefreshLobbyData()
         {
-            if (!Lobby.HasValue) return;
-            Lobby.Value.SetData("name", Shapez2Multiplayer.Savegame.Name);
-            Lobby.Value.SetData("gamever", ((int)Savegame.CurrentVersion).ToString());
-            Lobby.Value.SetData("appsourceversion", GameEnvironmentManager.Version);
-            Lobby.Value.SetData("appsourceenvironment", GameEnvironment.BuildConfiguration.ToString());
-            Lobby.Value.SetData("appsourcestore", GameEnvironment.Store.ToString());
-            IModdingFramework moddingFramework = Shapez2Multiplayer.GameSessionOrchestratorDependencyContainer.Resolve<IModdingFramework>();
-            Lobby.Value.SetData("modver", moddingFramework.Context.ExecutableMods.FirstOrDefault(mod => mod.EntryPoint is Shapez2Multiplayer).Metadata.Version.ToString());
-            Lobby.Value.SetData("mode", Shapez2Multiplayer.Mode.BaseId.Id);
-            Lobby.Value.SetData("scenario", Shapez2Multiplayer.Mode.Scenario.UniqueId.Id);
-            Lobby.Value.SetData("difficultyresearchshapecost", Shapez2Multiplayer.Mode.Parameters.DifficultyParameters.ResearchShapeCostMultiplier.ToString());
-            Lobby.Value.SetData("difficultychunklimit", Shapez2Multiplayer.Mode.Parameters.DifficultyParameters.ChunkLimitMultiplier.ToString());
-            Lobby.Value.SetData("difficultyblueprintcost", Shapez2Multiplayer.Mode.Parameters.DifficultyParameters.BlueprintCostMultiplier.ToString());
-            Lobby.Value.SetData("playtime", Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.TotalPlaytime.ToString());
-            Lobby.Value.SetData("research", Shapez2Multiplayer.Research.Progress.ComputeProgress().ToString());
-            Lobby.Value.SetData("structurecount", Shapez2Multiplayer.MapModel.BuildingCount.ToString());
-            Lobby.Value.SetData("gamerules", Shapez2Multiplayer.ActiveRules.Count.ToString());
-            Lobby.Value.SetData("mods", JsonUtility.ToJson(Savegame.SerializeModSignature(Shapez2Multiplayer.CreateModSignature(moddingFramework.Context.ResolvedMods), moddingFramework)));
-            Lobby.Value.SetData("cheatsused", Shapez2Multiplayer.Savegame.CheatsEnabled.ToString());
-            Lobby.Value.SetData("completed", Shapez2Multiplayer.Research.Layout.Levels.All(l => Shapez2Multiplayer.Research.Progress.IsUnlocked(l)).ToString());
-            Lobby.Value.SetData("uid", Shapez2Multiplayer.SavegameOptionsManager.Uid);
+            if (Lobby.HasValue)
+            {
+                Lobby.Value.SetData("name", Shapez2Multiplayer.Savegame.Name);
+                Lobby.Value.SetData("gamever", ((int)Savegame.CurrentVersion).ToString());
+                Lobby.Value.SetData("appsourceversion", GameEnvironmentManager.Version);
+                Lobby.Value.SetData("appsourceenvironment", GameEnvironment.BuildConfiguration.ToString());
+                Lobby.Value.SetData("appsourcestore", GameEnvironment.Store.ToString());
+                IModdingFramework moddingFramework = Shapez2Multiplayer.GameSessionOrchestratorDependencyContainer.Resolve<IModdingFramework>();
+                Lobby.Value.SetData("modver", moddingFramework.Context.ExecutableMods.FirstOrDefault(mod => mod.EntryPoint is Shapez2Multiplayer).Metadata.Version.ToString());
+                Lobby.Value.SetData("mode", Shapez2Multiplayer.Mode.BaseId.Id);
+                Lobby.Value.SetData("scenario", Shapez2Multiplayer.Mode.Scenario.UniqueId.Id);
+                Lobby.Value.SetData("difficultyresearchshapecost", Shapez2Multiplayer.Mode.Parameters.DifficultyParameters.ResearchShapeCostMultiplier.ToString());
+                Lobby.Value.SetData("difficultychunklimit", Shapez2Multiplayer.Mode.Parameters.DifficultyParameters.ChunkLimitMultiplier.ToString());
+                Lobby.Value.SetData("difficultyblueprintcost", Shapez2Multiplayer.Mode.Parameters.DifficultyParameters.BlueprintCostMultiplier.ToString());
+                Lobby.Value.SetData("playtime", Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.TotalPlaytime.ToString());
+                Lobby.Value.SetData("research", Shapez2Multiplayer.Research.Progress.ComputeProgress().ToString());
+                Lobby.Value.SetData("structurecount", Shapez2Multiplayer.MapModel.BuildingCount.ToString());
+                Lobby.Value.SetData("gamerules", Shapez2Multiplayer.ActiveRules.Count.ToString());
+                Lobby.Value.SetData("mods", JsonUtility.ToJson(Savegame.SerializeModSignature(Shapez2Multiplayer.CreateModSignature(moddingFramework.Context.ResolvedMods), moddingFramework)));
+                Lobby.Value.SetData("cheatsused", Shapez2Multiplayer.Savegame.CheatsEnabled.ToString());
+                Lobby.Value.SetData("completed", Shapez2Multiplayer.Research.Layout.Levels.All(l => Shapez2Multiplayer.Research.Progress.IsUnlocked(l)).ToString());
+                Lobby.Value.SetData("uid", Shapez2Multiplayer.SavegameOptionsManager.Uid);
+            }
+            //if (serviceDiscovery != null)
+            //{
+            //    var newProfile = new ServiceProfile(
+            //        Shapez2Multiplayer.Savegame.Name,
+            //        "_Shapez2Multiplayer._udp",
+            //        7777
+            //    );
+            //    newProfile.AddProperty("name", Shapez2Multiplayer.Savegame.Name);
+            //    newProfile.AddProperty("gamever", ((int)Savegame.CurrentVersion).ToString());
+            //    newProfile.AddProperty("appsourceversion", GameEnvironmentManager.Version);
+            //    newProfile.AddProperty("appsourceenvironment", GameEnvironment.BuildConfiguration.ToString());
+            //    newProfile.AddProperty("appsourcestore", GameEnvironment.Store.ToString());
+            //    IModdingFramework moddingFramework = Shapez2Multiplayer.GameSessionOrchestratorDependencyContainer.Resolve<IModdingFramework>();
+            //    newProfile.AddProperty("modver", moddingFramework.Context.ExecutableMods.FirstOrDefault(mod => mod.EntryPoint is Shapez2Multiplayer).Metadata.Version.ToString());
+            //    newProfile.AddProperty("mode", Shapez2Multiplayer.Mode.BaseId.Id);
+            //    newProfile.AddProperty("scenario", Shapez2Multiplayer.Mode.Scenario.UniqueId.Id);
+            //    newProfile.AddProperty("difficultyresearchshapecost", Shapez2Multiplayer.Mode.Parameters.DifficultyParameters.ResearchShapeCostMultiplier.ToString());
+            //    newProfile.AddProperty("difficultychunklimit", Shapez2Multiplayer.Mode.Parameters.DifficultyParameters.ChunkLimitMultiplier.ToString());
+            //    newProfile.AddProperty("difficultyblueprintcost", Shapez2Multiplayer.Mode.Parameters.DifficultyParameters.BlueprintCostMultiplier.ToString());
+            //    newProfile.AddProperty("playtime", Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.TotalPlaytime.ToString());
+            //    newProfile.AddProperty("research", Shapez2Multiplayer.Research.Progress.ComputeProgress().ToString());
+            //    newProfile.AddProperty("structurecount", Shapez2Multiplayer.MapModel.BuildingCount.ToString());
+            //    newProfile.AddProperty("gamerules", Shapez2Multiplayer.ActiveRules.Count.ToString());
+            //    newProfile.AddProperty("mods", JsonUtility.ToJson(Savegame.SerializeModSignature(Shapez2Multiplayer.CreateModSignature(moddingFramework.Context.ResolvedMods), moddingFramework)));
+            //    newProfile.AddProperty("cheatsused", Shapez2Multiplayer.Savegame.CheatsEnabled.ToString());
+            //    newProfile.AddProperty("completed", Shapez2Multiplayer.Research.Layout.Levels.All(l => Shapez2Multiplayer.Research.Progress.IsUnlocked(l)).ToString());
+            //    newProfile.AddProperty("uid", Shapez2Multiplayer.SavegameOptionsManager.Uid);
+            //    if (serviceProfile != null) serviceDiscovery.Unadvertise(serviceProfile);
+            //    serviceProfile = newProfile;
+            //    serviceDiscovery.Advertise(serviceProfile);
+            //    serviceDiscovery.Announce(serviceProfile);
+            //}
         }
         public static bool SendToAll(IPacket packet)
         {
@@ -214,6 +247,7 @@ namespace Shapez2Multiplayer
                     Shapez2Multiplayer.Research.PlayerLevelGoals.OnChanged.Unregister(MultiplayerEvents.OnResearchPlayerLevelGoalManagerChanged);
                     Shapez2Multiplayer.Research.Progress.OnChanged.Unregister(MultiplayerEvents.OnResearchUnlockProgressManagerChanged);
                     Shapez2Multiplayer.Research.UnlockManager.OnResearchManuallyUnlockedByPlayer.Unregister(MultiplayerEvents.OnResearchUnlockManagerResearchManuallyUnlockedByPlayer);
+                    Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.InteractionState.OnStateChanged.Unregister(MultiplayerEvents.OnPlayerInteractionStateChanged);
                     MultiplayerCore.socketManager.SendToAll(new DisconnectReasonPacket(MultiplayerCore.DisconnectReason.SessionClosed));
                     foreach (var sm in socketManager.SocketManagers)
                     {
@@ -229,6 +263,7 @@ namespace Shapez2Multiplayer
                     Shapez2Multiplayer.GameSessionOrchestrator?.LocalPlayer.HUDData.Pins.OnPinAdded.Unregister(MultiplayerEvents.OnPinAdded);
                     Shapez2Multiplayer.GameSessionOrchestrator?.LocalPlayer.HUDData.Pins.OnPinRemoved.Unregister(MultiplayerEvents.OnPinRemoved);
                     ((IEntityPlacementStateController?)Shapez2Multiplayer.EntityPlacementRunner)?.OnPlacementDataChanged.Unregister(MultiplayerEvents.OnPlacementDataChanged);
+                    Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.InteractionState.OnStateChanged.Unregister(MultiplayerEvents.OnPlayerInteractionStateChanged);
                     connectionManager.ConnectionManager.Close();
                     connectionManager = null;
                 }
@@ -239,6 +274,10 @@ namespace Shapez2Multiplayer
                 ChunkedPacket.HostChunkedPacketCache.Clear();
                 Lobby?.Leave();
                 Lobby = null;
+                //if (serviceProfile != null) serviceDiscovery?.Unadvertise(serviceProfile);
+                //serviceProfile = null;
+                //serviceDiscovery?.Dispose();
+                //serviceDiscovery = null;
                 if (wasClient && canReturnToMenu && Shapez2Multiplayer.Game.IsGameInSession(out IGameStartOptions _))
                 {
                     Shapez2Multiplayer.GameSessionOrchestrator.AudioManager.FadeOutMusic();

@@ -1,11 +1,8 @@
 ﻿using Core.Collections.Scoped;
-using Core.Dependency;
-using Core.Events;
 using Game.Core.Coordinates;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Text;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -13,10 +10,11 @@ namespace Shapez2Multiplayer
 {
     public class OtherPlayerHUDIslandMassSelection : OtherPlayerHUDMassSelectionBase<IslandModel, GlobalChunkCoordinate>
     {
-        public OtherPlayerHUDIslandMassSelection(IMapModel map, IIslandPreviewDrawer islandPreviewDrawer)
+        public OtherPlayerHUDIslandMassSelection(IMapModel map, IIslandPreviewDrawer islandPreviewDrawer, IConnection? connection)
         {
             this.Map = map;
             this.IslandPreviewDrawer = islandPreviewDrawer;
+            this.connection = connection;
         }
         public void Update(HUDIslandMassSelection hudIslandMassSelection)
         {
@@ -25,6 +23,25 @@ namespace Shapez2Multiplayer
                 (HUDMassSelectionMode)Encoding.HUDIslandMassSelectionAreaCurrentModeInfo.GetValue(hudIslandMassSelection),
                 (HashSet<IslandModel>)Encoding.HUDIslandMassSelectionAreaPendingSelectionInfo.GetValue(hudIslandMassSelection),
                 HoverAnimationsFromIList((IList)Encoding.HUDIslandMassSelectionAreaHoverAnimationsInfo.GetValue(hudIslandMassSelection)));
+        }
+        protected override void OnHover(IslandModel target)
+        {
+
+        }
+        protected override IslandModel FindEntityBelowCursor()
+        {
+            var cursor = connection != null ? HUDMultiplayerCursors.Instance.GetOrAddCursor(connection) : HUDMultiplayerCursors.Instance.GetOrAddHostCursor();
+            var screenPosition = (float2)ExtraScreenUtils.WorldToScreenPointDouble(Shapez2Multiplayer.GameSessionOrchestrator.Viewport, cursor.WorldPosition);
+            if (screenPosition.x < 0 || screenPosition.y < 0 || screenPosition.x > Screen.width || screenPosition.y > Screen.height)
+            {
+                return IslandModel.Invalid;
+            }
+            SelectionUtils.TryFindIslandAtScreenPosition(Shapez2Multiplayer.GameSessionOrchestrator.Viewport, in screenPosition, Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.CurrentMap, true, out var islandModel, out var globalChunkCoordinate, out var ray, out var num, cursor.ViewportIslandLayer, cursor.ViewportShowAllIslandLayers.HasValue ? (cursor.ViewportShowAllIslandLayers.Value ? Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.CurrentMap.MaxIslandLayer : cursor.ViewportIslandLayer) : null);
+            return islandModel;
+        }
+        protected override PlayerInteractionState GetTargetScopeState()
+        {
+            return PlayerInteractionState.IslandsIdle;
         }
         protected override void Draw_AreaSelection(FrameDrawOptions options, GlobalChunkCoordinate from_GC, GlobalChunkCoordinate to_GC, HUDMassSelectionSelectionType type)
         {

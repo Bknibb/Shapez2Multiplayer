@@ -1,11 +1,6 @@
 ﻿using Game.Placement.Data;
-using HarmonyLib;
 using K4os.Hash.xxHash;
-using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
-using System.Text;
 
 namespace Shapez2Multiplayer.Packets
 {

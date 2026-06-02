@@ -1,10 +1,6 @@
 ﻿using Core.Localization;
-using Steamworks.Data;
-using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 
 namespace Shapez2Multiplayer.Packets
 {
@@ -33,6 +29,8 @@ namespace Shapez2Multiplayer.Packets
                 MultiplayerCore.socketManager.SendToAll(new PausePacket(false));
                 new PausePacket(false).Handle(null);
                 PlacementIndicatorDataPacket.SentToAllConnections = false;
+                MultiplayerCore.socketManager.ForceUpdateCursor();
+                MultiplayerCore.socketManager.PingUpdateTimer = float.MaxValue;
             }
             else
             {

@@ -1,6 +1,8 @@
 ﻿using Core.Events;
+using Core.Localization;
 using Game.Core.Research;
 using HarmonyLib;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
@@ -80,7 +82,13 @@ namespace Shapez2Multiplayer.Packets
                 var linearUpgradeId = new ResearchLinearUpgradeId(kvp.Key);
                 if (!researchManager.LinearUpgradeManager.Levels.TryGetValue(linearUpgradeId, out int level) || level != kvp.Value)
                 {
-                    ResearchLinearUpgradeManagerSetLevelInfo.Invoke(linearUpgradeId, new object[] { linearUpgradeId, kvp.Value });
+                    ResearchLinearUpgradeManagerSetLevelInfo.Invoke(researchManager.LinearUpgradeManager, new object[] { linearUpgradeId, kvp.Value });
+                    //if (researchManager.LinearUpgradeManager.TryGetUpgrade(linearUpgradeId, out var _Upgrade))
+                    //{
+                    //    Shapez2Multiplayer.PassiveEventBus.Emit<PlayerUpgradedLinearUpgradeEvent>(new PlayerUpgradedLinearUpgradeEvent(Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer, _Upgrade));
+                    //    Shapez2Multiplayer.HudEvents.ShowEpicNotification.Invoke(new HUDEpicNotificationData("research.research-linear-upgrade-improved-notification.title".T(),
+                    //    "research.research-linear-upgrade-improved-notification.description".T().Bind("name", _Upgrade.Title).Bind("level", StringFormatting.FormatGenericCount(kvp.Value + 1))));
+                    //}
                 }
             }
             for (int i = researchManager.PlayerLevel.Level; i < ResearchManagerSerializedData.PlayerLevel.Level; i++)

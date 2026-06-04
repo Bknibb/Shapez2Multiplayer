@@ -1,5 +1,6 @@
 ﻿using Core.Collections.Disposables;
 using Core.Dependency;
+using Core.Events;
 using Core.Localization;
 using DG.Tweening;
 using Game.Core.Modding;
@@ -133,7 +134,9 @@ namespace Shapez2Multiplayer
         public static GameInputManager? GameInputManager => GameSessionOrchestratorDependencyContainer?.Resolve<GameInputManager>();
         public static GameCursorManager? GameCursorManager => GameInputManager != null ? (GameCursorManager)GameInputManagerCursorManagerInfo.GetValue(GameInputManager) : null;
         public static IInteractionMode? InteractionMode => GameSessionOrchestratorDependencyContainer?.Resolve<IInteractionMode>();
-        
+        public static IEventSender? PassiveEventBus => GameSessionOrchestratorDependencyContainer?.Resolve<IEventSender>();
+        public static HUDEvents? HudEvents => GameSessionOrchestratorDependencyContainer?.Resolve<HUDEvents>();
+
         public static readonly FieldInfo GameCursorManager_StateInfo = AccessTools.Field(typeof(GameCursorManager), "_State");
         public Shapez2Multiplayer(ILogger logger)
         {
@@ -401,7 +404,8 @@ namespace Shapez2Multiplayer
         [HarmonyPatch(typeof(PlayerActionManager), nameof(PlayerActionManager.TryScheduleAction))]
         public static bool TryScheduleActionPrefix(IPlayerAction action, ref bool __result)
         {
-            if (!((action is LevelUpLinearUpgradePlayerAction || action is ResearchUpgradePlayerAction) && MultiplayerCore.Client)) return true;
+            if (!MultiplayerCore.Client) return true;
+            if (!(action is LevelUpLinearUpgradePlayerAction || action is ResearchUpgradePlayerAction)) return true;
             MultiplayerCore.connectionManager.Send(new PlayerActionPacket(action));
             __result = false;
             return false;

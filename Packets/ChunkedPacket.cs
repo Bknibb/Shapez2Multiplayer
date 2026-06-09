@@ -23,6 +23,7 @@ namespace Shapez2Multiplayer.Packets
         public uint TotalChunks;
         public const int ChunkSize = 1024 * 128;
         public const int ChunkThreshold = 1024 * 256;
+        public const int MaxTotalDataSize = 1024 * 1024 * 100; // 100 MB
         //public const float SendDelay = 1f;
         //static float SendTimer = 0.0f;
         public ChunkedPacket() { }
@@ -88,6 +89,11 @@ namespace Shapez2Multiplayer.Packets
             Index = reader.ReadUInt32();
             TotalChunks = reader.ReadUInt32();
             var length = reader.ReadInt32();
+            if (length > ChunkSize)
+            {
+                cancel = true;
+                return;
+            }
             Data = reader.ReadBytes(length);
             finished = reader.ReadBoolean();
         }
@@ -135,6 +141,13 @@ namespace Shapez2Multiplayer.Packets
                 return;
             }
             cacheData.Index = Index;
+            if (cacheData.Stream.Length + Data.Length > MaxTotalDataSize)
+            {
+                Shapez2Multiplayer.logger.Error.Log("Chunked packet with id " + Id + " exceeded the max total data size. Discarding Entire Chunked Packet.");
+                cacheData.Stream.Dispose();
+                cache.Remove(Id);
+                return;
+            }
             cacheData.Stream.Write(Data);
             Data = null;
             if (MultiplayerCore.Client && !MultiplayerCore.connectionManager.FinishedConnecting && MultiplayerCore.ConnectingDialog != null)

@@ -1505,8 +1505,15 @@ namespace Shapez2Multiplayer
             IIslandConfiguration configuration = null;
             if (reader.ReadBoolean())
             {
-                configuration = (IIslandConfiguration)Activator.CreateInstance(Type.GetType(reader.ReadString()));
-                configuration.Sync(serializationVisitor);
+                Type type = Type.GetType(reader.ReadString());
+                if (type.IsAssignableFrom(typeof(IIslandConfiguration)))
+                {
+                    configuration = (IIslandConfiguration)Activator.CreateInstance(type);
+                    configuration.Sync(serializationVisitor);
+                } else
+                {
+                    Shapez2Multiplayer.logger.Warning.Log($"Type {type.FullName} is not an IIslandConfiguration, skipping");
+                }
             }
             
             var Origin_GC = DecodeGlobalChunkCoordinate(stream);
@@ -1647,10 +1654,16 @@ namespace Shapez2Multiplayer
             IBuildingConfiguration configuration = null;
             if (reader.ReadBoolean())
             {
-                var type = reader.ReadString();
-                //configuration = (IBuildingConfiguration)Type.GetType(reader.ReadString()).Constructor().Invoke(new object[] { });
-                configuration = (IBuildingConfiguration)Activator.CreateInstance(Type.GetType(type));
-                configuration.Sync(serializationVisitor);
+                Type type = Type.GetType(reader.ReadString());
+                if (type.IsAssignableFrom(typeof(IBuildingConfiguration)))
+                {
+                    configuration = (IBuildingConfiguration)Activator.CreateInstance(type);
+                    configuration.Sync(serializationVisitor);
+                }
+                else
+                {
+                    Shapez2Multiplayer.logger.Warning.Log($"Type {type.FullName} is not an IBuildingConfiguration, skipping");
+                }
             }
             byte[] serializedState = null;
             if (reader.ReadBoolean()) serializedState = reader.ReadBytes(reader.ReadInt32());
@@ -2062,8 +2075,16 @@ namespace Shapez2Multiplayer
             IIslandConfiguration configuration = null;
             if (reader.ReadBoolean())
             {
-                configuration = (IIslandConfiguration)Activator.CreateInstance(Type.GetType(reader.ReadString()));
-                configuration.Sync(serializationVisitor);
+                Type configType = Type.GetType(reader.ReadString());
+                if (configType.IsAssignableFrom(typeof(IIslandConfiguration)))
+                {
+                    configuration = (IIslandConfiguration)Activator.CreateInstance(configType);
+                    configuration.Sync(serializationVisitor);
+                }
+                else
+                {
+                    Shapez2Multiplayer.logger.Warning.Log($"Type {configType.FullName} is not an IIslandConfiguration, skipping");
+                }
             }
             var state = new SimulationStateContainer();
             if (reader.ReadBoolean()) state.Sync(serializationVisitor);
@@ -2098,15 +2119,23 @@ namespace Shapez2Multiplayer
             IBuildingConfiguration configuration = null;
             if (reader.ReadBoolean())
             {
-                var configurationType = Type.GetType(reader.ReadString());
-                if (configurationType == typeof(FluidProducerConfiguration))
+                Type configurationType = Type.GetType(reader.ReadString());
+                if (configurationType.IsAssignableFrom(typeof(IBuildingConfiguration)))
                 {
-                    configuration = new FluidProducerConfiguration(DecodeIFluidFlow(stream));
-                } else
-                {
-                    configuration = (IBuildingConfiguration)Activator.CreateInstance(configurationType);
+                    if (configurationType == typeof(FluidProducerConfiguration))
+                    {
+                        configuration = new FluidProducerConfiguration(DecodeIFluidFlow(stream));
+                    }
+                    else
+                    {
+                        configuration = (IBuildingConfiguration)Activator.CreateInstance(configurationType);
+                    }
+                    configuration.Sync(serializationVisitor);
                 }
-                configuration.Sync(serializationVisitor);
+                else
+                {
+                    Shapez2Multiplayer.logger.Warning.Log($"Type {configurationType.FullName} is not an IBuildingConfiguration, skipping");
+                }
             }
             var state = new SimulationStateContainer();
             if (reader.ReadBoolean()) state.Sync(serializationVisitor);

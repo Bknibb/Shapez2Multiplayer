@@ -1506,7 +1506,7 @@ namespace Shapez2Multiplayer
             if (reader.ReadBoolean())
             {
                 Type type = Type.GetType(reader.ReadString());
-                if (type.IsAssignableFrom(typeof(IIslandConfiguration)))
+                if (typeof(IIslandConfiguration).IsAssignableFrom(type))
                 {
                     configuration = (IIslandConfiguration)Activator.CreateInstance(type);
                     configuration.Sync(serializationVisitor);
@@ -1655,7 +1655,7 @@ namespace Shapez2Multiplayer
             if (reader.ReadBoolean())
             {
                 Type type = Type.GetType(reader.ReadString());
-                if (type.IsAssignableFrom(typeof(IBuildingConfiguration)))
+                if (typeof(IBuildingConfiguration).IsAssignableFrom(type))
                 {
                     configuration = (IBuildingConfiguration)Activator.CreateInstance(type);
                     configuration.Sync(serializationVisitor);
@@ -2076,7 +2076,7 @@ namespace Shapez2Multiplayer
             if (reader.ReadBoolean())
             {
                 Type configType = Type.GetType(reader.ReadString());
-                if (configType.IsAssignableFrom(typeof(IIslandConfiguration)))
+                if (typeof(IIslandConfiguration).IsAssignableFrom(configType))
                 {
                     configuration = (IIslandConfiguration)Activator.CreateInstance(configType);
                     configuration.Sync(serializationVisitor);
@@ -2120,7 +2120,7 @@ namespace Shapez2Multiplayer
             if (reader.ReadBoolean())
             {
                 Type configurationType = Type.GetType(reader.ReadString());
-                if (configurationType.IsAssignableFrom(typeof(IBuildingConfiguration)))
+                if (typeof(IBuildingConfiguration).IsAssignableFrom(configurationType))
                 {
                     if (configurationType == typeof(FluidProducerConfiguration))
                     {

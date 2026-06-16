@@ -3,6 +3,7 @@ using Core.Dependency;
 using Core.Events;
 using Core.Localization;
 using DG.Tweening;
+using Game.Core.Coordinates;
 using Game.Core.Modding;
 using Game.HUD.QuestArea.PinnedShapes;
 using Game.Orchestration;
@@ -484,25 +485,30 @@ namespace Shapez2Multiplayer
             if (___UndoStack[^1] is ActionModifyIsland actionModifyIsland)
             {
                 MultiplayerCore.SendToAll(new PlayerActionPacket(new ActionModifyIsland(actionModifyIsland.Map, actionModifyIsland.Executor, new ActionModifyIsland.Payload(actionModifyIsland.Data.Delete, actionModifyIsland.Data.IgnorePlacementBlueprintCost, actionModifyIsland.Data.RefundDeletionBlueprintCost))));
-            } else if (___UndoStack[^1] is ActionModifyBuildings actionModifyBuildings)
+            }
+            else if (___UndoStack[^1] is ActionModifyBuildings actionModifyBuildings)
             {
                 MultiplayerCore.SendToAll(new PlayerActionPacket(new ActionModifyBuildings(actionModifyBuildings.Map, actionModifyBuildings.Executor, new ModifyBuildingsPayload(Array.Empty<PlaceBuildingPayload>(), actionModifyBuildings.Data.Delete, actionModifyBuildings.Data.BlueprintCurrencyModification), (bool)Encoding.ActionModifyBuildingsUseBunchEditMode.GetValue(actionModifyBuildings))));
-            } else if (___UndoStack[^1] is CombinedUndoablePlayerAction combinedUndoablePlayerAction)
+            }
+            else if (___UndoStack[^1] is CombinedUndoablePlayerAction combinedUndoablePlayerAction)
             {
                 MultiplayerCore.SendToAll(new PlayerActionPacket(new CombinedUndoablePlayerAction(((List<IPlayerAction>)Encoding.CombinedUndoablePlayerActionActionsInfo.GetValue(combinedUndoablePlayerAction)).Select(action =>
                 {
                     if (action is ActionModifyIsland actionModifyIsland1)
                     {
                         return new ActionModifyIsland(actionModifyIsland1.Map, actionModifyIsland1.Executor, new ActionModifyIsland.Payload(actionModifyIsland1.Data.Delete, actionModifyIsland1.Data.IgnorePlacementBlueprintCost, actionModifyIsland1.Data.RefundDeletionBlueprintCost));
-                    } else if (action is ActionModifyBuildings actionModifyBuildings1)
+                    }
+                    else if (action is ActionModifyBuildings actionModifyBuildings1)
                     {
                         return new ActionModifyBuildings(actionModifyBuildings1.Map, actionModifyBuildings1.Executor, new ModifyBuildingsPayload(Array.Empty<PlaceBuildingPayload>(), actionModifyBuildings1.Data.Delete, actionModifyBuildings1.Data.BlueprintCurrencyModification), (bool)Encoding.ActionModifyBuildingsUseBunchEditMode.GetValue(actionModifyBuildings1));
-                    } else
+                    }
+                    else
                     {
                         return action;
                     }
                 }))));
-            } else
+            }
+            else
             {
                 MultiplayerCore.SendToAll(new PlayerActionPacket(___UndoStack[^1]));
             }
@@ -685,7 +691,8 @@ namespace Shapez2Multiplayer
                 if (part is HUDBuildingMassSelection hudBuildingMassSelection)
                 {
                     HUDBuildingMassSelection = hudBuildingMassSelection;
-                } else if (part is HUDIslandMassSelection hudIslandMassSelection)
+                }
+                else if (part is HUDIslandMassSelection hudIslandMassSelection)
                 {
                     HUDIslandMassSelection = hudIslandMassSelection;
                 }
@@ -770,6 +777,23 @@ namespace Shapez2Multiplayer
                 float3 offset = cursor.WorldPosition + new float3(0f, -4.01f, 0f);
                 float3 target = new float3(190f * ___Alpha);
                 ui.Add(planeMesh, islandGridHelperMaterialCursor, FastMatrix.TranslateScale(in offset, in target), ShadowToken.Off, ShadowToken.Off);
+            }
+        }
+        [HarmonyPatch]
+        public class ConstantSignalBuildingModuleDataProviderShowDialogDelegatePatch {
+            public static MethodBase TargetMethod()
+            {
+                var type = AccessTools.FirstInner(typeof(ConstantSignalBuildingModuleDataProvider), t => t.GetDeclaredFields().Any(f => f.Name == "config" && f.FieldType == typeof(ConstantSignalConfiguration)));
+                return type.FirstMethod(m => m.Name.StartsWith("<HUD_ShowConfigureDialog>"));
+            }
+            public static void Postfix(ConstantSignalConfiguration ___config)
+            {
+                if (!MultiplayerCore.InLobby) return;
+                var building = Shapez2Multiplayer.MapModel.Buildings.Cast<BuildingModel?>().FirstOrDefault(b => b.HasValue && b.Value.Configuration is ConstantSignalConfiguration constantSignalConfiguration && constantSignalConfiguration == ___config);
+                if (building.HasValue)
+                {
+                    MultiplayerCore.SendToAll(new UpdateBuildingConfigurationPacket(building.Value.Tile_G, building.Value.Configuration));
+                }
             }
         }
     }

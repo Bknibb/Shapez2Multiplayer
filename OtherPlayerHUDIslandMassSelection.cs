@@ -68,7 +68,7 @@ namespace Shapez2Multiplayer
                 float3 @float = chunkVector.ToGlobal(in transform).ToCenter_W(-3.9f);
                 float3 float2 = new float3(20);
                 Matrix4x4 matrix4x = FastMatrix.TranslateScale(in @float, in float2);
-                options.Draw3DPlaneWithProperties_SLOW_AVOID(options.Theme.BaseResources.UXIslandHoverMaterial, matrix4x, MaterialPropertyHelpers.CreateAlphaBlock(alpha));
+                options.Draw3DPlaneWithPerInstanceData(options.Theme.BaseResources.UXIslandHoverMaterial, matrix4x, new AlphaPerInstanceData(alpha));
             }
         }
         protected override void Draw_PendingSelection(FrameDrawOptions options, IReadOnlyCollection<IslandModel> entities, HUDMassSelectionSelectionType type)

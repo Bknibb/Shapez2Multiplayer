@@ -92,7 +92,7 @@ namespace Shapez2Multiplayer
                 }
                 UICompletedIndicator.gameObject.SetActiveSelfExt(bool.Parse(lobby.GetData("completed")));
                 UISavegameUIDText.Text = new RawText(text);
-                GameScenario scenario = GameData.GetScenario(new ScenarioId(lobby.GetData("scenario")));
+                var scenario = GameData.GetScenario(new ScenarioId(lobby.GetData("scenario")));
                 UIStatScenario.Text = scenario.Title;
                 GameModeId gameModeId = scenario.SupportedGameModes.First<GameModeId>();
                 GameModeDefinition gameModeDefinition = GameData.GetGameModeDefinition(gameModeId);
@@ -214,7 +214,7 @@ namespace Shapez2Multiplayer
         }
         private bool IsVerCompatible(GameVersion lobbyVersion, string gameModeId, string scenarioId)
         {
-            return lobbyVersion >= Savegame.LowestSupportedVersion && lobbyVersion <= Savegame.CurrentVersion && GameData.GameModeIds.Contains(new Game.Core.Research.GameModeId(gameModeId)) && GameData.TryGetScenario(new ScenarioId(scenarioId), out _);
+            return lobbyVersion >= Savegame.LowestSupportedVersion && lobbyVersion <= Savegame.CurrentVersion && GameData.GameModeIds.Contains(new Game.Core.Research.GameModeId(gameModeId)) && GameData.TryGetScenarioData(new ScenarioId(scenarioId), out _);
         }
     }
 }

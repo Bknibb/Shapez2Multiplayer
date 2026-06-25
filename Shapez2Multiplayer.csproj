@@ -86,6 +86,10 @@
 		  <HintPath>$(SPZ2_PATH)\Game.Content.dll</HintPath>
 		  <Private>False</Private>
 	  </Reference>
+	  <Reference Include="Game.Core.Content">
+		  <HintPath>$(SPZ2_PATH)\Game.Core.Content.dll</HintPath>
+		  <Private>False</Private>
+	  </Reference>
     <Reference Include="Game.Orchestration">
       <HintPath>$(SPZ2_PATH)\Game.Orchestration.dll</HintPath>
 	  <Private>False</Private>

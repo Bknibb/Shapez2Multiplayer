@@ -77,23 +77,7 @@ namespace Shapez2Multiplayer
         //};
         public static readonly Dictionary<GlobalTileCoordinate, BuildingId> DeletedBuildingIds = new Dictionary<GlobalTileCoordinate, BuildingId>();
         public static readonly Dictionary<GlobalChunkCoordinate, IslandId> DeletedIslandIds = new Dictionary<GlobalChunkCoordinate, IslandId>();
-        public static readonly FieldInfo ConcurrentPlacementData_ExtraBuildingsToRemovePositionsInfo = AccessTools.Field(typeof(ConcurrentPlacementData), "_ExtraBuildingsToRemovePositions");
-        public static readonly FieldInfo ConcurrentPlacementData_ExtraIslandsToRemovePositionsInfo = AccessTools.Field(typeof(ConcurrentPlacementData), "_ExtraIslandsToRemovePositions");
-        public static readonly FieldInfo ConcurrentPlacementData_IslandsMapInfo = AccessTools.Field(typeof(ConcurrentPlacementData), "_IslandsMap");
-        public static readonly FieldInfo ConcurrentPlacementData_BuildingsMapInfo = AccessTools.Field(typeof(ConcurrentPlacementData), "_BuildingsMap");
-        public static readonly FieldInfo FlatPlacementData_ExtraBuildingsToRemovePositionsInfo = AccessTools.Field(typeof(FlatPlacementData), "_ExtraBuildingsToRemovePositions");
-        public static readonly FieldInfo FlatPlacementData_ExtraIslandsToRemovePositionsInfo = AccessTools.Field(typeof(FlatPlacementData), "_ExtraIslandsToRemovePositions");
-        public static readonly FieldInfo FlatPlacementData_Buildings = AccessTools.Field(typeof(FlatPlacementData), "_Buildings");
-        public static readonly FieldInfo FlatPlacementData_Islands = AccessTools.Field(typeof(FlatPlacementData), "_Islands");
-        public static readonly FieldInfo FlatPlacementDataBuildingIndexMap = AccessTools.Field(typeof(FlatPlacementData), "BuildingIndexMap");
-        public static readonly FieldInfo FlatPlacementDataIslandIndexMap = AccessTools.Field(typeof(FlatPlacementData), "IslandIndexMap");
-        public static readonly FieldInfo OverlappingPlacementData_ExtraBuildingsToRemovePositionsInfo = AccessTools.Field(typeof(OverlappingPlacementData), "_ExtraBuildingsToRemovePositions");
-        public static readonly FieldInfo OverlappingPlacementData_ExtraIslandsToRemovePositionsInfo = AccessTools.Field(typeof(OverlappingPlacementData), "_ExtraIslandsToRemovePositions");
-        public static readonly FieldInfo OverlappingPlacementData_IslandsMapInfo = AccessTools.Field(typeof(OverlappingPlacementData), "_IslandsMap");
-        public static readonly FieldInfo OverlappingPlacementData_BuildingsMapInfo = AccessTools.Field(typeof(OverlappingPlacementData), "_BuildingsMap");
-        //public static readonly BinaryFormatter bf = new BinaryFormatter(); really inefficient in packet size
         public static ISerializationVisitor serializationVisitor;
-        public static readonly FieldInfo PlacementInputHolderInputInfo = AccessTools.Field(typeof(PlacementInputHolder), "Input");
         public static void Encode(float2 float2, Stream stream)
         {
             using BinaryWriter writer = new BinaryWriter(stream, UTF8Encoding.UTF8, leaveOpen: true);
@@ -164,11 +148,10 @@ namespace Shapez2Multiplayer
             using BinaryWriter writer = new BinaryWriter(stream, UTF8Encoding.UTF8, leaveOpen: true);
             writer.Write(blueprintCurrency.TotalSub);
         }
-        public static readonly ConstructorInfo BlueprintCurrencyConstructorInfo = AccessTools.Constructor(typeof(BlueprintCurrency), new Type[] { typeof(long) });
         public static BlueprintCurrency DecodeBlueprintCurrency(Stream stream)
         {
             using BinaryReader reader = new BinaryReader(stream, UTF8Encoding.UTF8, leaveOpen: true);
-            return (BlueprintCurrency)BlueprintCurrencyConstructorInfo.Invoke(new object[] { reader.ReadInt64() });
+            return new BlueprintCurrency(reader.ReadInt64());
         }
         public static void Encode(GlobalTileCoordinate globalTileCoordinate, Stream stream)
         {
@@ -206,22 +189,17 @@ namespace Shapez2Multiplayer
             using BinaryReader reader = new BinaryReader(stream, UTF8Encoding.UTF8, leaveOpen: true);
             return new GlobalChunkCoordinate(reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt16());
         }
-        public static readonly FieldInfo HUDBuildingMassSelectionAreaSelectionEnd_GInfo = AccessTools.Field(typeof(HUDBuildingMassSelection), "AreaSelectionEnd_G");
-        public static readonly FieldInfo HUDBuildingMassSelectionAreaSelectionStart_GInfo = AccessTools.Field(typeof(HUDBuildingMassSelection), "AreaSelectionStart_G");
-        public static readonly FieldInfo HUDBuildingMassSelectionAreaCurrentModeInfo = AccessTools.Field(typeof(HUDBuildingMassSelection), "CurrentMode");
-        public static readonly FieldInfo HUDBuildingMassSelectionAreaPendingSelectionInfo = AccessTools.Field(typeof(HUDBuildingMassSelection), "PendingSelection");
-        public static readonly FieldInfo HUDBuildingMassSelectionAreaHoverAnimationsInfo = AccessTools.Field(typeof(HUDBuildingMassSelection), "HoverAnimations");
         public static void Encode(HUDBuildingMassSelection hudBuildingMassSelection, Stream stream)
         {
             using BinaryWriter writer = new BinaryWriter(stream, UTF8Encoding.UTF8, leaveOpen: true);
-            var areaSelectionEnd_G = (GlobalTileCoordinate?)HUDBuildingMassSelectionAreaSelectionEnd_GInfo.GetValue(hudBuildingMassSelection);
+            var areaSelectionEnd_G = hudBuildingMassSelection.AreaSelectionEnd_G;
             writer.Write(areaSelectionEnd_G.HasValue);
             if (areaSelectionEnd_G.HasValue) Encode(areaSelectionEnd_G.Value, stream);
-            var areaSelectionStart_G = (GlobalTileCoordinate?)HUDBuildingMassSelectionAreaSelectionStart_GInfo.GetValue(hudBuildingMassSelection);
+            var areaSelectionStart_G = hudBuildingMassSelection.AreaSelectionStart_G;
             writer.Write(areaSelectionStart_G.HasValue);
             if (areaSelectionStart_G.HasValue) Encode(areaSelectionStart_G.Value, stream);
-            Encode((HUDMassSelectionMode)HUDBuildingMassSelectionAreaCurrentModeInfo.GetValue(hudBuildingMassSelection), stream);
-            var pendingSelection = (HashSet<BuildingModel>)HUDBuildingMassSelectionAreaPendingSelectionInfo.GetValue(hudBuildingMassSelection);
+            Encode(hudBuildingMassSelection.CurrentMode, stream);
+            var pendingSelection = hudBuildingMassSelection.PendingSelection;
             writer.Write(pendingSelection.Count);
             foreach (var selectable in pendingSelection)
             {
@@ -249,10 +227,10 @@ namespace Shapez2Multiplayer
         {
             using BinaryReader reader = new BinaryReader(stream, UTF8Encoding.UTF8, leaveOpen: true);
             var hudBuildingMassSelection = new HUDBuildingMassSelection();
-            if (reader.ReadBoolean()) HUDBuildingMassSelectionAreaSelectionEnd_GInfo.SetValue(hudBuildingMassSelection, DecodeGlobalTileCoordinate(stream));
-            if (reader.ReadBoolean()) HUDBuildingMassSelectionAreaSelectionStart_GInfo.SetValue(hudBuildingMassSelection, DecodeGlobalTileCoordinate(stream));
-            HUDBuildingMassSelectionAreaCurrentModeInfo.SetValue(hudBuildingMassSelection, DecodeHUDMassSelectionMode(stream));
-            var pendingSelection = (HashSet<BuildingModel>)HUDBuildingMassSelectionAreaPendingSelectionInfo.GetValue(hudBuildingMassSelection);
+            if (reader.ReadBoolean()) hudBuildingMassSelection.AreaSelectionEnd_G = DecodeGlobalTileCoordinate(stream);
+            if (reader.ReadBoolean()) hudBuildingMassSelection.AreaSelectionStart_G = DecodeGlobalTileCoordinate(stream);
+            hudBuildingMassSelection.CurrentMode = DecodeHUDMassSelectionMode(stream);
+            var pendingSelection = hudBuildingMassSelection.PendingSelection;
             var count = reader.ReadInt32();
             for (int i = 0; i < count; i++)
             {
@@ -285,22 +263,17 @@ namespace Shapez2Multiplayer
             //}
             return hudBuildingMassSelection;
         }
-        public static readonly FieldInfo HUDIslandMassSelectionAreaSelectionEnd_GInfo = AccessTools.Field(typeof(HUDIslandMassSelection), "AreaSelectionEnd_G");
-        public static readonly FieldInfo HUDIslandMassSelectionAreaSelectionStart_GInfo = AccessTools.Field(typeof(HUDIslandMassSelection), "AreaSelectionStart_G");
-        public static readonly FieldInfo HUDIslandMassSelectionAreaCurrentModeInfo = AccessTools.Field(typeof(HUDIslandMassSelection), "CurrentMode");
-        public static readonly FieldInfo HUDIslandMassSelectionAreaPendingSelectionInfo = AccessTools.Field(typeof(HUDIslandMassSelection), "PendingSelection");
-        public static readonly FieldInfo HUDIslandMassSelectionAreaHoverAnimationsInfo = AccessTools.Field(typeof(HUDIslandMassSelection), "HoverAnimations");
         public static void Encode(HUDIslandMassSelection hudIslandMassSelection, Stream stream)
         {
             using BinaryWriter writer = new BinaryWriter(stream, UTF8Encoding.UTF8, leaveOpen: true);
-            var areaSelectionEnd_G = (GlobalChunkCoordinate?)HUDIslandMassSelectionAreaSelectionEnd_GInfo.GetValue(hudIslandMassSelection);
+            var areaSelectionEnd_G = hudIslandMassSelection.AreaSelectionEnd_G;
             writer.Write(areaSelectionEnd_G.HasValue);
             if (areaSelectionEnd_G.HasValue) Encode(areaSelectionEnd_G.Value, stream);
-            var areaSelectionStart_G = (GlobalChunkCoordinate?)HUDIslandMassSelectionAreaSelectionStart_GInfo.GetValue(hudIslandMassSelection);
+            var areaSelectionStart_G = hudIslandMassSelection.AreaSelectionStart_G;
             writer.Write(areaSelectionStart_G.HasValue);
             if (areaSelectionStart_G.HasValue) Encode(areaSelectionStart_G.Value, stream);
-            Encode((HUDMassSelectionMode)HUDIslandMassSelectionAreaCurrentModeInfo.GetValue(hudIslandMassSelection), stream);
-            var pendingSelection = (HashSet<IslandModel>)HUDIslandMassSelectionAreaPendingSelectionInfo.GetValue(hudIslandMassSelection);
+            Encode(hudIslandMassSelection.CurrentMode, stream);
+            var pendingSelection = hudIslandMassSelection.PendingSelection;
             writer.Write(pendingSelection.Count);
             foreach (var selectable in pendingSelection)
             {
@@ -328,10 +301,10 @@ namespace Shapez2Multiplayer
         {
             using BinaryReader reader = new BinaryReader(stream, UTF8Encoding.UTF8, leaveOpen: true);
             var hudIslandMassSelection = new HUDIslandMassSelection();
-            if (reader.ReadBoolean()) HUDIslandMassSelectionAreaSelectionEnd_GInfo.SetValue(hudIslandMassSelection, DecodeGlobalChunkCoordinate(stream));
-            if (reader.ReadBoolean()) HUDIslandMassSelectionAreaSelectionStart_GInfo.SetValue(hudIslandMassSelection, DecodeGlobalChunkCoordinate(stream));
-            HUDIslandMassSelectionAreaCurrentModeInfo.SetValue(hudIslandMassSelection, DecodeHUDMassSelectionMode(stream));
-            var pendingSelection = (HashSet<IslandModel>)HUDIslandMassSelectionAreaPendingSelectionInfo.GetValue(hudIslandMassSelection);
+            if (reader.ReadBoolean()) hudIslandMassSelection.AreaSelectionEnd_G = DecodeGlobalChunkCoordinate(stream);
+            if (reader.ReadBoolean()) hudIslandMassSelection.AreaSelectionStart_G = DecodeGlobalChunkCoordinate(stream);
+            hudIslandMassSelection.CurrentMode = DecodeHUDMassSelectionMode(stream);
+            var pendingSelection = hudIslandMassSelection.PendingSelection;
             var count = reader.ReadInt32();
             for (int i = 0; i < count; i++)
             {
@@ -375,10 +348,11 @@ namespace Shapez2Multiplayer
         public static void Encode(PlacementInputHolder placementInputHolder, Stream stream)
         {
             using BinaryWriter writer = new BinaryWriter(stream, UTF8Encoding.UTF8, leaveOpen: true);
-            var placementInput = (IPlacementInput)PlacementInputHolderInputInfo.GetValue(placementInputHolder);
+            var placementInput = placementInputHolder.Input;
             writer.Write(placementInput != null);
             if (placementInput != null) Encode(placementInput, stream);
         }
+        public static readonly FieldInfo PlacementInputHolderInputInfo = AccessTools.Field(typeof(PlacementInputHolder), nameof(PlacementInputHolder.Input));
         public static PlacementInputHolder DecodePlacementInputHolder(Stream stream)
         {
             using BinaryReader reader = new BinaryReader(stream, UTF8Encoding.UTF8, leaveOpen: true);
@@ -1170,11 +1144,10 @@ namespace Shapez2Multiplayer
                     return null;
             }
         }
-        public static readonly FieldInfo CombinedTextTextsInfo = AccessTools.Field(typeof(CombinedText), "Texts");
         public static void Encode(CombinedText combinedText, Stream stream)
         {
             using BinaryWriter writer = new BinaryWriter(stream, UTF8Encoding.UTF8, leaveOpen: true);
-            var Texts = (List<IText>)CombinedTextTextsInfo.GetValue(combinedText);
+            var Texts = combinedText.Texts;
             writer.Write(Texts.Count);
             foreach (var text in Texts)
             {
@@ -1192,11 +1165,10 @@ namespace Shapez2Multiplayer
             }
             return new CombinedText(contents);
         }
-        public static readonly FieldInfo FieldInfoRawTextTextInfo = AccessTools.Field(typeof(RawText), "Text");
         public static void Encode(RawText rawText, Stream stream)
         {
             using BinaryWriter writer = new BinaryWriter(stream, UTF8Encoding.UTF8, leaveOpen: true);
-            writer.Write((string)FieldInfoRawTextTextInfo.GetValue(rawText));
+            writer.Write(rawText.Text);
         }
         public static RawText DecodeRawText(Stream stream)
         {
@@ -1305,19 +1277,17 @@ namespace Shapez2Multiplayer
             ClearBuildingContent,
             ClearIslandContent
         }
-        public static readonly FieldInfo LevelUpLinearUpgradePlayerActionUpgradeId = AccessTools.Field(typeof(LevelUpLinearUpgradePlayerAction), "UpgradeId");
         public static void Encode(LevelUpLinearUpgradePlayerAction levelUpLinearUpgradePlayerAction, Stream stream)
         {
-            Encode((ResearchLinearUpgradeId)LevelUpLinearUpgradePlayerActionUpgradeId.GetValue(levelUpLinearUpgradePlayerAction), stream);
+            Encode(levelUpLinearUpgradePlayerAction.UpgradeId, stream);
         }
         public static LevelUpLinearUpgradePlayerAction DecodeLevelUpLinearUpgradePlayerAction(Stream stream)
         {
             return new LevelUpLinearUpgradePlayerAction(DecodeResearchLinearUpgradeId(stream), Shapez2Multiplayer.Research.LinearUpgradeManager, Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer);
         }
-        public static readonly FieldInfo ResearchUpgradePlayerActionUpgrade = AccessTools.Field(typeof(ResearchUpgradePlayerAction), "Upgrade");
         public static void Encode(ResearchUpgradePlayerAction researchUpgradePlayerAction, Stream stream)
         {
-            Encode((IResearchUpgrade)ResearchUpgradePlayerActionUpgrade.GetValue(researchUpgradePlayerAction), stream);
+            Encode(researchUpgradePlayerAction.Upgrade, stream);
         }
         public static ResearchUpgradePlayerAction DecodeResearchUpgradePlayerAction(Stream stream)
         {
@@ -1331,11 +1301,10 @@ namespace Shapez2Multiplayer
         {
             return Shapez2Multiplayer.Mode.ResearchLayout.GetUpgrade(DecodeResearchUpgradeId(stream));
         }
-        public static readonly FieldInfo CombinedUndoablePlayerActionActionsInfo = AccessTools.Field(typeof(CombinedUndoablePlayerAction), "Actions");
         public static void Encode(CombinedUndoablePlayerAction combinedUndoablePlayerAction, Stream stream)
         {
             using BinaryWriter writer = new BinaryWriter(stream, UTF8Encoding.UTF8, leaveOpen: true);
-            var Actions = (List<IPlayerAction>)CombinedUndoablePlayerActionActionsInfo.GetValue(combinedUndoablePlayerAction);
+            var Actions = combinedUndoablePlayerAction.Actions;
             writer.Write(Actions.Count);
             foreach (var action in Actions)
             {
@@ -1357,11 +1326,10 @@ namespace Shapez2Multiplayer
             }
             return new CombinedUndoablePlayerAction(Actions);
         }
-        public static readonly FieldInfo ClearIslandContentPlayerActionBuildingsToClearInfo = AccessTools.Field(typeof(ClearIslandContentPlayerAction), "IslandsToClear");
         public static void Encode(ClearIslandContentPlayerAction clearIslandContentPlayerAction, Stream stream)
         {
             using BinaryWriter writer = new BinaryWriter(stream, UTF8Encoding.UTF8, leaveOpen: true);
-            var IslandsToClear = (IReadOnlyList<IslandId>)ClearIslandContentPlayerActionBuildingsToClearInfo.GetValue(clearIslandContentPlayerAction);
+            var IslandsToClear = clearIslandContentPlayerAction.IslandsToClear;
             writer.Write(IslandsToClear.Count);
             foreach (var Island in IslandsToClear)
             {
@@ -1378,11 +1346,10 @@ namespace Shapez2Multiplayer
             }
             return new ClearIslandContentPlayerAction(Shapez2Multiplayer.MapModel, Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer, IslandsToClear);
         }
-        public static readonly FieldInfo ClearBuildingContentPlayerActionBuildingsToClearInfo = AccessTools.Field(typeof(ClearBuildingContentPlayerAction), "BuildingsToClear");
         public static void Encode(ClearBuildingContentPlayerAction clearBuildingContentPlayerAction, Stream stream)
         {
             using BinaryWriter writer = new BinaryWriter(stream, UTF8Encoding.UTF8, leaveOpen: true);
-            var BuildingsToClear = (IReadOnlyList<BuildingId>)ClearBuildingContentPlayerActionBuildingsToClearInfo.GetValue(clearBuildingContentPlayerAction);
+            var BuildingsToClear = clearBuildingContentPlayerAction.BuildingsToClear;
             writer.Write(BuildingsToClear.Count);
             foreach (var building in BuildingsToClear)
             {
@@ -1451,12 +1418,12 @@ namespace Shapez2Multiplayer
             DeletedIslandIds[Coordinate] = Id;
             return new ActionModifyIsland.DeletePayload(Id);
         }
-        public static byte[] Test(object obj)
-        {
-            using var Stream = new MemoryStream();
-            AccessTools.Method(typeof(Encoding), "Encode", new Type[] { obj.GetType(), typeof(Stream) }).Invoke(null, new object[] { obj, Stream });
-            return Stream.ToArray();
-        }
+        //public static byte[] Test(object obj)
+        //{
+        //    using var Stream = new MemoryStream();
+        //    AccessTools.Method(typeof(Encoding), "Encode", new Type[] { obj.GetType(), typeof(Stream) }).Invoke(null, new object[] { obj, Stream });
+        //    return Stream.ToArray();
+        //}
         public static void Encode(ActionModifyIsland.PlacePayload placePayload, Stream stream)
         {
             using BinaryWriter writer = new BinaryWriter(stream, UTF8Encoding.UTF8, leaveOpen: true);
@@ -1483,7 +1450,7 @@ namespace Shapez2Multiplayer
                 Encode(placeBuildingPayload, stream);
             }
         }
-        public static readonly FieldInfo ActionModifyIslandPlacePayloadIslandId = AccessTools.Field(typeof(ActionModifyIsland.PlacePayload), "IslandId");
+        public static readonly FieldInfo ActionModifyIslandPlacePayloadIslandId = AccessTools.Field(typeof(ActionModifyIsland.PlacePayload), nameof(ActionModifyIsland.PlacePayload.IslandId));
         public static ActionModifyIsland.PlacePayload DecodeActionModifyIslandPlacePayload(Stream stream)
         {
             using BinaryReader reader = new BinaryReader(stream, UTF8Encoding.UTF8, leaveOpen: true);
@@ -1529,12 +1496,11 @@ namespace Shapez2Multiplayer
             ActionModifyIslandPlacePayloadIslandId.SetValue(boxed, islandId);
             return (ActionModifyIsland.PlacePayload)boxed;
         }
-        public static readonly FieldInfo ActionModifyBuildingsUseBunchEditMode = AccessTools.Field(typeof(ActionModifyBuildings), "UseBunchEditMode");
         public static void Encode(ActionModifyBuildings actionModifyBuildings, Stream stream)
         {
             using BinaryWriter writer = new BinaryWriter(stream, UTF8Encoding.UTF8, leaveOpen: true);
             Encode(actionModifyBuildings.Data, stream);
-            writer.Write((bool)ActionModifyBuildingsUseBunchEditMode.GetValue(actionModifyBuildings));
+            writer.Write(actionModifyBuildings.UseBunchEditMode);
         }
         public static ActionModifyBuildings DecodeActionModifyBuildings(Stream stream)
         {
@@ -1597,8 +1563,8 @@ namespace Shapez2Multiplayer
                 writer.Write(false);
             }
             //Encode(placeBuildingPayload.IslandId, stream);
-            writer.Write((uint)IslandIdId.GetValue(placeBuildingPayload.IslandId) > 0);
-            if ((uint)IslandIdId.GetValue(placeBuildingPayload.IslandId) > 0) Encode(Shapez2Multiplayer.MapModel.GetIsland(placeBuildingPayload.IslandId).Position, stream);
+            writer.Write(placeBuildingPayload.IslandId.Id > 0);
+            if (placeBuildingPayload.IslandId.Id > 0) Encode(Shapez2Multiplayer.MapModel.GetIsland(placeBuildingPayload.IslandId).Position, stream);
             Encode((BuildingDefinition)placeBuildingPayload.Definition, stream);
             writer.Write(placeBuildingPayload.Configuration != null);
             if (placeBuildingPayload.Configuration != null)
@@ -1616,7 +1582,7 @@ namespace Shapez2Multiplayer
             writer.Write(placeBuildingPayload.ForceAllowPlace);
             Encode(placeBuildingPayload.Transform_I, stream);
         }
-        public static readonly FieldInfo PlaceBuildingPayloadBuildingId = AccessTools.Field(typeof(PlaceBuildingPayload), "BuildingId");
+        public static readonly FieldInfo PlaceBuildingPayloadBuildingId = AccessTools.Field(typeof(PlaceBuildingPayload), nameof(PlaceBuildingPayload.BuildingId));
         public static PlaceBuildingPayload DecodePlaceBuildingPayload(Stream stream)
         {
             using BinaryReader reader = new BinaryReader(stream, UTF8Encoding.UTF8, leaveOpen: true);
@@ -1648,7 +1614,7 @@ namespace Shapez2Multiplayer
                 }
             } else
             {
-                islandId = (IslandId)IslandIdConstructor.Invoke(new object[] { (uint)0 });
+                islandId = new IslandId(0);
             }
             var definition = DecodeBuildingDefinition(stream);
             IBuildingConfiguration configuration = null;
@@ -1684,33 +1650,29 @@ namespace Shapez2Multiplayer
         {
             return new IslandTileTransform(DecodeIslandTileCoordinate(stream), DecodeGridRotation(stream));
         }
-        public static readonly FieldInfo BuildingIdId = AccessTools.Field(typeof(BuildingId), "Id");
-        public static readonly ConstructorInfo BuildingIdConstructor = AccessTools.Constructor(typeof(BuildingId), new Type[] { typeof(int) });
         [Obsolete("IslandId is not universal, get from position instead", true)]
         public static void Encode(BuildingId buildingId, Stream stream)
         {
             using BinaryWriter writer = new BinaryWriter(stream, UTF8Encoding.UTF8, leaveOpen: true);
-            writer.Write((int)BuildingIdId.GetValue(buildingId));
+            writer.Write(buildingId.Id);
         }
         [Obsolete("IslandId is not universal, get from position instead", true)]
         public static BuildingId DecodeBuildingId(Stream stream)
         {
             using BinaryReader reader = new BinaryReader(stream, UTF8Encoding.UTF8, leaveOpen: true);
-            return (BuildingId)BuildingIdConstructor.Invoke(new object[] { reader.ReadInt32() });
+            return new BuildingId(reader.ReadInt32());
         }
-        public static readonly FieldInfo IslandIdId = AccessTools.Field(typeof(IslandId), "Id");
-        public static readonly ConstructorInfo IslandIdConstructor = AccessTools.Constructor(typeof(IslandId), new Type[] { typeof(uint) });
         [Obsolete("IslandId is not universal, get from position instead", true)]
-        public static void Encode(IslandId buildingId, Stream stream)
+        public static void Encode(IslandId islandId, Stream stream)
         {
             using BinaryWriter writer = new BinaryWriter(stream, UTF8Encoding.UTF8, leaveOpen: true);
-            writer.Write((uint)IslandIdId.GetValue(buildingId));
+            writer.Write(islandId.Id);
         }
         [Obsolete("IslandId is not universal, get from position instead", true)]
         public static IslandId DecodeIslandId(Stream stream)
         {
             using BinaryReader reader = new BinaryReader(stream, UTF8Encoding.UTF8, leaveOpen: true);
-            return (IslandId)IslandIdConstructor.Invoke(new object[] { reader.ReadUInt32() });
+            return new IslandId(reader.ReadUInt32());
         }
         public static void Encode(IPlacementData placementData, Stream stream)
         {
@@ -1752,27 +1714,27 @@ namespace Shapez2Multiplayer
             writer.Write(concurrentPlacementData.CanFitChunkLimit);
             writer.Write(concurrentPlacementData.IslandsCount);
             writer.Write(concurrentPlacementData.BuildingsCount);
-            var _ExtraBuildingsToRemovePositions = (HashSet<GlobalTileCoordinate>)ConcurrentPlacementData_ExtraBuildingsToRemovePositionsInfo.GetValue(concurrentPlacementData);
+            var _ExtraBuildingsToRemovePositions = concurrentPlacementData.ExtraBuildingsToRemovePositions;
             writer.Write(_ExtraBuildingsToRemovePositions.Count);
             foreach (var coord in _ExtraBuildingsToRemovePositions)
             {
                 Encode(coord, stream);
             }
-            var _ExtraIslandsToRemovePositions = (HashSet<GlobalChunkCoordinate>)ConcurrentPlacementData_ExtraIslandsToRemovePositionsInfo.GetValue(concurrentPlacementData);
+            var _ExtraIslandsToRemovePositions = concurrentPlacementData.ExtraIslandsToRemovePositions;
             writer.Write(_ExtraIslandsToRemovePositions.Count);
             foreach (var coord in _ExtraIslandsToRemovePositions)
             {
                 Encode(coord, stream);
             }
             //_AdditionalData unsupported
-            var _IslandsMap = (DashMap<GlobalChunkCoordinate, IslandPlacement>)ConcurrentPlacementData_IslandsMapInfo.GetValue(concurrentPlacementData);
+            var _IslandsMap = concurrentPlacementData._IslandsMap;
             writer.Write(_IslandsMap.Count);
             foreach (var kvp in _IslandsMap.GetAllKVPs())
             {
                 Encode(kvp.Key, stream);
                 Encode(kvp.Value, stream);
             }
-            var _BuildingsMap = (DashMap<GlobalTileCoordinate, BuildingPlacement>)ConcurrentPlacementData_BuildingsMapInfo.GetValue(concurrentPlacementData);
+            var _BuildingsMap = concurrentPlacementData._BuildingsMap;
             writer.Write(_BuildingsMap.Count);
             foreach (var kvp in _BuildingsMap.GetAllKVPs())
             {
@@ -1780,42 +1742,38 @@ namespace Shapez2Multiplayer
                 Encode(kvp.Value, stream);
             }
         }
-        public static readonly PropertyInfo ConcurrentPlacementDataMaxBuildingIndex = AccessTools.Property(typeof(ConcurrentPlacementData), nameof(ConcurrentPlacementData.MaxBuildingIndex));
-        public static readonly PropertyInfo ConcurrentPlacementDataMaxIslandIndex = AccessTools.Property(typeof(ConcurrentPlacementData), nameof(ConcurrentPlacementData.MaxIslandIndex));
-        public static readonly PropertyInfo ConcurrentPlacementDataIslandsCount = AccessTools.Property(typeof(ConcurrentPlacementData), nameof(ConcurrentPlacementData.IslandsCount));
-        public static readonly PropertyInfo ConcurrentPlacementDataBuildingsCount = AccessTools.Property(typeof(ConcurrentPlacementData), nameof(ConcurrentPlacementData.BuildingsCount));
         public static ConcurrentPlacementData DecodeConcurrentPlacementData(Stream stream)
         {
             using BinaryReader reader = new BinaryReader(stream, UTF8Encoding.UTF8, leaveOpen: true);
             var concurrentPlacementData = new ConcurrentPlacementData();
-            ConcurrentPlacementDataMaxBuildingIndex.SetValue(concurrentPlacementData, reader.ReadInt32());
-            ConcurrentPlacementDataMaxIslandIndex.SetValue(concurrentPlacementData, reader.ReadInt32());
+            concurrentPlacementData.MaxBuildingIndex = reader.ReadInt32();
+            concurrentPlacementData.MaxIslandIndex = reader.ReadInt32();
             concurrentPlacementData.CostBlueprintPoints = reader.ReadBoolean();
             concurrentPlacementData.BlueprintCost = DecodeBlueprintCurrency(stream);
             concurrentPlacementData.ChunkCost = DecodeChunkLimitCurrency(stream);
             concurrentPlacementData.CanAffordBlueprintCost = reader.ReadBoolean();
             concurrentPlacementData.CanFitChunkLimit = reader.ReadBoolean();
-            ConcurrentPlacementDataIslandsCount.SetValue(concurrentPlacementData, reader.ReadInt32());
-            ConcurrentPlacementDataBuildingsCount.SetValue(concurrentPlacementData, reader.ReadInt32());
-            var _ExtraBuildingsToRemovePositions = (HashSet<GlobalTileCoordinate>)ConcurrentPlacementData_ExtraBuildingsToRemovePositionsInfo.GetValue(concurrentPlacementData);
+            concurrentPlacementData.IslandsCount = reader.ReadInt32();
+            concurrentPlacementData.BuildingsCount = reader.ReadInt32();
+            var _ExtraBuildingsToRemovePositions = concurrentPlacementData.ExtraBuildingsToRemovePositions;
             var count = reader.ReadInt32();
             for (int i = 0; i < count; i++)
             {
                 _ExtraBuildingsToRemovePositions.Add(DecodeGlobalTileCoordinate(stream));
             }
-            var _ExtraIslandsToRemovePositions = (HashSet<GlobalChunkCoordinate>)ConcurrentPlacementData_ExtraIslandsToRemovePositionsInfo.GetValue(concurrentPlacementData);
+            var _ExtraIslandsToRemovePositions = concurrentPlacementData.ExtraIslandsToRemovePositions;
             count = reader.ReadInt32();
             for (int i = 0; i < count; i++)
             {
                 _ExtraIslandsToRemovePositions.Add(DecodeGlobalChunkCoordinate(stream));
             }
-            var _IslandsMap = (DashMap<GlobalChunkCoordinate, IslandPlacement>)ConcurrentPlacementData_IslandsMapInfo.GetValue(concurrentPlacementData);
+            var _IslandsMap = concurrentPlacementData._IslandsMap;
             count = reader.ReadInt32();
             for (int i = 0; i < count; i++)
             {
                 _IslandsMap.Add(DecodeGlobalChunkCoordinate(stream), DecodeIslandPlacement(stream));
             }
-            var _BuildingsMap = (DashMap<GlobalTileCoordinate, BuildingPlacement>)ConcurrentPlacementData_BuildingsMapInfo.GetValue(concurrentPlacementData);
+            var _BuildingsMap = concurrentPlacementData._BuildingsMap;
             count = reader.ReadInt32();
             for (int i = 0; i < count; i++)
             {
@@ -1833,39 +1791,39 @@ namespace Shapez2Multiplayer
             Encode(flatPlacementData.ChunkCost, stream);
             writer.Write(flatPlacementData.CanAffordBlueprintCost);
             writer.Write(flatPlacementData.CanFitChunkLimit);
-            var _ExtraBuildingsToRemovePositions = (HashSet<GlobalTileCoordinate>)FlatPlacementData_ExtraBuildingsToRemovePositionsInfo.GetValue(flatPlacementData);
+            var _ExtraBuildingsToRemovePositions = flatPlacementData.ExtraBuildingsToRemovePositions;
             writer.Write(_ExtraBuildingsToRemovePositions.Count);
             foreach (var coord in _ExtraBuildingsToRemovePositions)
             {
                 Encode(coord, stream);
             }
-            var _ExtraIslandsToRemovePositions = (HashSet<GlobalChunkCoordinate>)FlatPlacementData_ExtraIslandsToRemovePositionsInfo.GetValue(flatPlacementData);
+            var _ExtraIslandsToRemovePositions = flatPlacementData.ExtraIslandsToRemovePositions;
             writer.Write(_ExtraIslandsToRemovePositions.Count);
             foreach (var coord in _ExtraIslandsToRemovePositions)
             {
                 Encode(coord, stream);
             }
             //_AdditionalData unsupported
-            var _Buildings = (ScopedList<BuildingPlacement>)FlatPlacementData_Buildings.GetValue(flatPlacementData);
+            var _Buildings = flatPlacementData._Buildings;
             writer.Write(_Buildings.Count);
             foreach (var building in _Buildings)
             {
                 Encode(building, stream);
             }
-            var _Islands = (ScopedList<IslandPlacement>)FlatPlacementData_Islands.GetValue(flatPlacementData);
+            var _Islands = flatPlacementData._Islands;
             writer.Write(_Islands.Count);
             foreach (var island in _Islands)
             {
                 Encode(island, stream);
             }
-            var BuildingIndexMap = (ScopedDictionary<GlobalTileCoordinate, int>)FlatPlacementDataBuildingIndexMap.GetValue(flatPlacementData);
+            var BuildingIndexMap = flatPlacementData.BuildingIndexMap;
             writer.Write(BuildingIndexMap.Count);
             foreach (var kvp in BuildingIndexMap)
             {
                 Encode(kvp.Key, stream);
                 writer.Write(kvp.Value);
             }
-            var IslandIndexMap = (ScopedDictionary<GlobalChunkCoordinate, int>)FlatPlacementDataIslandIndexMap.GetValue(flatPlacementData);
+            var IslandIndexMap = flatPlacementData.IslandIndexMap;
             writer.Write(IslandIndexMap.Count);
             foreach (var kvp in IslandIndexMap)
             {
@@ -1873,50 +1831,48 @@ namespace Shapez2Multiplayer
                 writer.Write(kvp.Value);
             }
         }
-        public static readonly PropertyInfo FlatPlacementDataMaxBuildingIndex = AccessTools.Property(typeof(FlatPlacementData), nameof(FlatPlacementData.MaxBuildingIndex));
-        public static readonly PropertyInfo FlatPlacementDataMaxIslandIndex = AccessTools.Property(typeof(FlatPlacementData), nameof(FlatPlacementData.MaxIslandIndex));
         public static FlatPlacementData DecodeFlatPlacementData(Stream stream)
         {
             using BinaryReader reader = new BinaryReader(stream, UTF8Encoding.UTF8, leaveOpen: true);
             var flatPlacementData = new FlatPlacementData(Shapez2Multiplayer.logger);
-            FlatPlacementDataMaxBuildingIndex.SetValue(flatPlacementData, reader.ReadInt32());
-            FlatPlacementDataMaxIslandIndex.SetValue(flatPlacementData, reader.ReadInt32());
+            flatPlacementData.MaxIslandIndex = reader.ReadInt32();
+            flatPlacementData.MaxIslandIndex = reader.ReadInt32();
             flatPlacementData.CostBlueprintPoints = reader.ReadBoolean();
             flatPlacementData.BlueprintCost = DecodeBlueprintCurrency(stream);
             flatPlacementData.ChunkCost = DecodeChunkLimitCurrency(stream);
             flatPlacementData.CanAffordBlueprintCost = reader.ReadBoolean();
             flatPlacementData.CanFitChunkLimit = reader.ReadBoolean();
-            var _ExtraBuildingsToRemovePositions = (HashSet<GlobalTileCoordinate>)FlatPlacementData_ExtraBuildingsToRemovePositionsInfo.GetValue(flatPlacementData);
+            var _ExtraBuildingsToRemovePositions = flatPlacementData.ExtraBuildingsToRemovePositions;
             var count = reader.ReadInt32();
             for (int i = 0; i < count; i++)
             {
                 _ExtraBuildingsToRemovePositions.Add(DecodeGlobalTileCoordinate(stream));
             }
-            var _ExtraIslandsToRemovePositions = (HashSet<GlobalChunkCoordinate>)FlatPlacementData_ExtraIslandsToRemovePositionsInfo.GetValue(flatPlacementData);
+            var _ExtraIslandsToRemovePositions = flatPlacementData.ExtraIslandsToRemovePositions;
             count = reader.ReadInt32();
             for (int i = 0; i < count; i++)
             {
                 _ExtraIslandsToRemovePositions.Add(DecodeGlobalChunkCoordinate(stream));
             }
-            var _Buildings = (ScopedList<BuildingPlacement>)FlatPlacementData_Buildings.GetValue(flatPlacementData);
+            var _Buildings = flatPlacementData._Buildings;
             count = reader.ReadInt32();
             for (int i = 0; i < count; i++)
             {
                 _Buildings.Add(DecodeBuildingPlacement(stream));
             }
-            var _Islands = (ScopedList<IslandPlacement>)FlatPlacementData_Islands.GetValue(flatPlacementData);
+            var _Islands = flatPlacementData._Islands;
             count = reader.ReadInt32();
             for (int i = 0; i < count; i++)
             {
                 _Islands.Add(DecodeIslandPlacement(stream));
             }
-            var BuildingIndexMap = (ScopedDictionary<GlobalTileCoordinate, int>)FlatPlacementDataBuildingIndexMap.GetValue(flatPlacementData);
+            var BuildingIndexMap = flatPlacementData.BuildingIndexMap;
             count = reader.ReadInt32();
             for (int i = 0; i < count; i++)
             {
                 BuildingIndexMap.Add(DecodeGlobalTileCoordinate(stream), reader.ReadInt32());
             }
-            var IslandIndexMap = (ScopedDictionary<GlobalChunkCoordinate, int>)FlatPlacementDataIslandIndexMap.GetValue(flatPlacementData);
+            var IslandIndexMap = flatPlacementData.IslandIndexMap;
             count = reader.ReadInt32();
             for (int i = 0; i < count; i++)
             {
@@ -1924,8 +1880,6 @@ namespace Shapez2Multiplayer
             }
             return flatPlacementData;
         }
-        public static readonly PropertyInfo OverlappingPlacementDataMaxBuildingIndex = AccessTools.Property(typeof(OverlappingPlacementData), nameof(OverlappingPlacementData.MaxBuildingIndex));
-        public static readonly PropertyInfo OverlappingPlacementDataMaxIslandIndex = AccessTools.Property(typeof(OverlappingPlacementData), nameof(OverlappingPlacementData.MaxIslandIndex));
         public static void Encode(OverlappingPlacementData overlappingPlacementData, Stream stream)
         {
             using BinaryWriter writer = new BinaryWriter(stream, UTF8Encoding.UTF8, leaveOpen: true);
@@ -1936,20 +1890,20 @@ namespace Shapez2Multiplayer
             Encode(overlappingPlacementData.ChunkCost, stream);
             writer.Write(overlappingPlacementData.CanAffordBlueprintCost);
             writer.Write(overlappingPlacementData.CanFitChunkLimit);
-            var _ExtraBuildingsToRemovePositions = (HashSet<GlobalTileCoordinate>)OverlappingPlacementData_ExtraBuildingsToRemovePositionsInfo.GetValue(overlappingPlacementData);
+            var _ExtraBuildingsToRemovePositions = overlappingPlacementData._ExtraBuildingsToRemovePositions;
             writer.Write(_ExtraBuildingsToRemovePositions.Count);
             foreach (var coord in _ExtraBuildingsToRemovePositions)
             {
                 Encode(coord, stream);
             }
-            var _ExtraIslandsToRemovePositions = (HashSet<GlobalChunkCoordinate>)OverlappingPlacementData_ExtraIslandsToRemovePositionsInfo.GetValue(overlappingPlacementData);
+            var _ExtraIslandsToRemovePositions = overlappingPlacementData._ExtraIslandsToRemovePositions;
             writer.Write(_ExtraIslandsToRemovePositions.Count);
             foreach (var coord in _ExtraIslandsToRemovePositions)
             {
                 Encode(coord, stream);
             }
             //_AdditionalData unsupported
-            var _IslandsMap = (MultiValueDictionary<GlobalChunkCoordinate, IslandPlacement, ScopedHashSet<IslandPlacement>>)OverlappingPlacementData_IslandsMapInfo.GetValue(overlappingPlacementData);
+            var _IslandsMap = overlappingPlacementData._IslandsMap;
             writer.Write(_IslandsMap.KeyCount);
             foreach (var key in _IslandsMap.Keys)
             {
@@ -1961,7 +1915,7 @@ namespace Shapez2Multiplayer
                     Encode(value, stream);
                 }
             }
-            var _BuildingsMap = (MultiValueDictionary<GlobalTileCoordinate, BuildingPlacement, ScopedHashSet<BuildingPlacement>>)OverlappingPlacementData_BuildingsMapInfo.GetValue(overlappingPlacementData);
+            var _BuildingsMap = overlappingPlacementData._BuildingsMap;
             writer.Write(_BuildingsMap.KeyCount);
             foreach (var key in _BuildingsMap.Keys)
             {
@@ -1978,26 +1932,26 @@ namespace Shapez2Multiplayer
         {
             using BinaryReader reader = new BinaryReader(stream, UTF8Encoding.UTF8, leaveOpen: true);
             var overlappingPlacementData = new OverlappingPlacementData();
-            OverlappingPlacementDataMaxBuildingIndex.SetValue(overlappingPlacementData, reader.ReadInt32());
-            OverlappingPlacementDataMaxIslandIndex.SetValue(overlappingPlacementData, reader.ReadInt32());
+            overlappingPlacementData.MaxBuildingIndex = reader.ReadInt32();
+            overlappingPlacementData.MaxIslandIndex = reader.ReadInt32();
             overlappingPlacementData.CostBlueprintPoints = reader.ReadBoolean();
             overlappingPlacementData.BlueprintCost = DecodeBlueprintCurrency(stream);
             overlappingPlacementData.ChunkCost = DecodeChunkLimitCurrency(stream);
             overlappingPlacementData.CanAffordBlueprintCost = reader.ReadBoolean();
             overlappingPlacementData.CanFitChunkLimit = reader.ReadBoolean();
-            var _ExtraBuildingsToRemovePositions = (HashSet<GlobalTileCoordinate>)OverlappingPlacementData_ExtraBuildingsToRemovePositionsInfo.GetValue(overlappingPlacementData);
+            var _ExtraBuildingsToRemovePositions = overlappingPlacementData._ExtraBuildingsToRemovePositions;
             var count = reader.ReadInt32();
             for (int i = 0; i < count; i++)
             {
                 _ExtraBuildingsToRemovePositions.Add(DecodeGlobalTileCoordinate(stream));
             }
-            var _ExtraIslandsToRemovePositions = (HashSet<GlobalChunkCoordinate>)OverlappingPlacementData_ExtraIslandsToRemovePositionsInfo.GetValue(overlappingPlacementData);
+            var _ExtraIslandsToRemovePositions = overlappingPlacementData._ExtraIslandsToRemovePositions;
             count = reader.ReadInt32();
             for (int i = 0; i < count; i++)
             {
                 _ExtraIslandsToRemovePositions.Add(DecodeGlobalChunkCoordinate(stream));
             }
-            var _IslandsMap = (MultiValueDictionary<GlobalChunkCoordinate, IslandPlacement, ScopedHashSet<IslandPlacement>>)OverlappingPlacementData_IslandsMapInfo.GetValue(overlappingPlacementData);
+            var _IslandsMap = overlappingPlacementData._IslandsMap;
             count = reader.ReadInt32();
             for (int i = 0; i < count; i++)
             {
@@ -2008,7 +1962,7 @@ namespace Shapez2Multiplayer
                     _IslandsMap.AddValue(key, DecodeIslandPlacement(stream));
                 }
             }
-            var _BuildingsMap = (MultiValueDictionary<GlobalTileCoordinate, BuildingPlacement, ScopedHashSet<BuildingPlacement>>)OverlappingPlacementData_BuildingsMapInfo.GetValue(overlappingPlacementData);
+            var _BuildingsMap = overlappingPlacementData._BuildingsMap;
             count = reader.ReadInt32();
             for (int i = 0; i < count; i++)
             {
@@ -2049,7 +2003,6 @@ namespace Shapez2Multiplayer
             using BinaryReader reader = new BinaryReader(stream, UTF8Encoding.UTF8, leaveOpen: true);
             return new IslandPlacement(DecodeIslandDescriptor(stream), (PlacementAllowability)stream.ReadByte(), reader.ReadInt32());
         }
-        public static readonly FieldInfo SimulationStateContainerStateInfo = AccessTools.Field(typeof(SimulationStateContainer), "State");
         public static void Encode(IslandDescriptor islandDescriptor, Stream stream)
         {
             using BinaryWriter writer = new BinaryWriter(stream, UTF8Encoding.UTF8, leaveOpen: true);
@@ -2063,7 +2016,7 @@ namespace Shapez2Multiplayer
                 islandDescriptor.Configuration.Sync(serializationVisitor);
             }
             //Encode(islandDescriptor.State, stream);
-            var state = (ISimulationState)SimulationStateContainerStateInfo.GetValue(islandDescriptor.State);
+            var state = islandDescriptor.State.State;
             writer.Write(state != null);
             if (state != null) islandDescriptor.State.Sync(serializationVisitor);
         }
@@ -2107,7 +2060,7 @@ namespace Shapez2Multiplayer
                 buildingDescriptor.Configuration.Sync(serializationVisitor);
             }
             //Encode(buildingDescriptor.State, stream);
-            var state = (ISimulationState)SimulationStateContainerStateInfo.GetValue(buildingDescriptor.State);
+            var state = buildingDescriptor.State.State;
             writer.Write(state != null);
             if (state != null) buildingDescriptor.State.Sync(serializationVisitor);
         }
@@ -2168,46 +2121,41 @@ namespace Shapez2Multiplayer
             BuffableFluidFlow,
             FluidFlow
         }
-        public static readonly FieldInfo BuffableFluidFlowFlowScaleWithSpeedIdInfo = AccessTools.Field(typeof(BuffableFluidFlow), "FlowScaleWithSpeedId");
-        public static readonly FieldInfo BuffableFluidFlowUnitsPerTickInfo = AccessTools.Field(typeof(BuffableFluidFlow), "UnitsPerTick");
         public static void Encode(BuffableFluidFlow buffableFluidFlow, Stream stream)
         {
             using BinaryWriter writer = new BinaryWriter(stream, UTF8Encoding.UTF8, leaveOpen: true);
             writer.Write(buffableFluidFlow.LitersPerMinute);
-            Encode((ResearchSpeedId)BuffableFluidFlowFlowScaleWithSpeedIdInfo.GetValue(buffableFluidFlow), stream);
-            Encode((FluidRate)BuffableFluidFlowUnitsPerTickInfo.GetValue(buffableFluidFlow), stream);
+            Encode(buffableFluidFlow.FlowScaleWithSpeedId, stream);
+            Encode(buffableFluidFlow.UnitsPerTick, stream);
         }
         public static BuffableFluidFlow DecodeBuffableFluidFlow(Stream stream)
         {
             using BinaryReader reader = new BinaryReader(stream, UTF8Encoding.UTF8, leaveOpen: true);
             var buffableFluidFlow = new BuffableFluidFlow();
             buffableFluidFlow.LitersPerMinute = reader.ReadInt32();
-            BuffableFluidFlowFlowScaleWithSpeedIdInfo.SetValue(buffableFluidFlow, DecodeResearchSpeedId(stream));
-            BuffableFluidFlowUnitsPerTickInfo.SetValue(buffableFluidFlow, DecodeFluidRate(stream));
+            buffableFluidFlow.FlowScaleWithSpeedId = DecodeResearchSpeedId(stream);
+            buffableFluidFlow.UnitsPerTick = DecodeFluidRate(stream);
             return buffableFluidFlow;
         }
-        public static readonly FieldInfo FluidFlowUnitsPerTickInfo = AccessTools.Field(typeof(FluidFlow), "UnitsPerTick");
         public static void Encode(FluidFlow fluidFlow, Stream stream)
         {
-            Encode((FluidRate)FluidFlowUnitsPerTickInfo.GetValue(fluidFlow), stream);
+            Encode(fluidFlow.UnitsPerTick, stream);
         }
         public static FluidFlow DecodeFluidFlow(Stream stream)
         {
             var fluidFlow = new FluidFlow();
-            FluidFlowUnitsPerTickInfo.SetValue(fluidFlow, DecodeFluidRate(stream));
+            fluidFlow.UnitsPerTick = DecodeFluidRate(stream);
             return fluidFlow;
         }
-        public static readonly FieldInfo FluidRateValueInfo = AccessTools.Field(typeof(FluidRate), "Value");
-        public static readonly ConstructorInfo FluidRateConstructorInfo = AccessTools.Constructor(typeof(FluidRate), new Type[] { typeof(int) });
         public static void Encode(FluidRate fluidRate, Stream stream)
         {
             using BinaryWriter writer = new BinaryWriter(stream, UTF8Encoding.UTF8, leaveOpen: true);
-            writer.Write((int)FluidRateValueInfo.GetValue(fluidRate));
+            writer.Write(fluidRate.Value);
         }
         public static FluidRate DecodeFluidRate(Stream stream)
         {
             using BinaryReader reader = new BinaryReader(stream, UTF8Encoding.UTF8, leaveOpen: true);
-            return (FluidRate)FluidRateConstructorInfo.Invoke(new object[] { reader.ReadInt32() });
+            return new FluidRate(reader.ReadInt32());
         }
         public static void Encode(ResearchSpeedId researchSpeedId, Stream stream)
         {
@@ -2566,7 +2514,6 @@ namespace Shapez2Multiplayer
         {
             return new ChunkDirection((byte)stream.ReadByte());
         }
-        public static readonly FieldInfo NotchDefinitionEffectiveRotation = AccessTools.Field(typeof(NotchDefinition), "EffectiveRotation");
         public static void Encode(NotchDefinition notchDefinition, Stream stream)
         {
             //using BinaryWriter writer = new BinaryWriter(stream, UTF8Encoding.UTF8, leaveOpen: true);
@@ -2577,7 +2524,7 @@ namespace Shapez2Multiplayer
             //}
             //Encode(notchDefinition.NotchCenter_L);
             Encode(notchDefinition.Direction_L, stream);
-            //Encode((GridRotation)NotchDefinitionEffectiveRotation.GetValue(notchDefinition), stream);
+            //Encode(notchDefinition.EffectiveRotation, stream);
         }
         public static NotchDefinition DecodeNotchDefinition(Stream stream)
         {
@@ -2593,7 +2540,7 @@ namespace Shapez2Multiplayer
             //    NotchCenter_L = (ChunkTileCoordinate)bf.Deserialize(stream),
             //    Direction_L = DecodeChunkDirection(stream)
             //};
-            //NotchDefinitionEffectiveRotation.SetValue(notchDefinition, DecodeGridRotation(stream));
+            //notchDefinition.EffectiveRotation = DecodeGridRotation(stream);
             //return notchDefinition;
             return new NotchDefinition(DecodeChunkDirection(stream));
         }

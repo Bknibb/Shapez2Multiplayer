@@ -23,13 +23,13 @@ namespace Shapez2Multiplayer
         public PlayerInteractionState? PlayerInteractionState { get; set; }
         private float elapsed = 0f;
         const float LerpDuration = 0.1f;
-        protected override bool UpdateWhileHidden => true;
+        public override bool UpdateWhileHidden => true;
         [Construct]
         private void Construct()
         {
             
         }
-        protected override void OnUpdate(InputDownstreamContext context)
+        public override void OnUpdate(InputDownstreamContext context)
         {
             if (Shapez2Multiplayer.GameSessionOrchestrator == null) return;
             if (elapsed < LerpDuration) elapsed += Time.deltaTime;
@@ -111,7 +111,7 @@ namespace Shapez2Multiplayer
             CurrentState = state;
         }
 
-        protected override void OnDispose()
+        public override void OnDispose()
         {
 
         }

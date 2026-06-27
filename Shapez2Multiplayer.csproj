@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+	  <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.3">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+	  </PackageReference>
 	<PackageReference Include="HarmonyX" Version="2.16.1">
 		<IncludeAssets>compile</IncludeAssets>
 	</PackageReference>
@@ -15,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="Core">
+    <Reference Include="Core" Publicize="true">
       <HintPath>$(SPZ2_PATH)\Core.dll</HintPath>
 	  <Private>False</Private>
     </Reference>
@@ -38,7 +42,7 @@
       <HintPath>$(SPZ2_PATH)\Game.Core.Effects.Editor.MonoBehaviours.dll</HintPath>
 	  <Private>False</Private>
     </Reference>
-    <Reference Include="Game.Core.Map">
+    <Reference Include="Game.Core.Map" Publicize="true">
       <HintPath>$(SPZ2_PATH)\Game.Core.Map.dll</HintPath>
 	  <Private>False</Private>
     </Reference>
@@ -54,7 +58,7 @@
       <HintPath>$(SPZ2_PATH)\Game.Core.Map.Model.dll</HintPath>
 	  <Private>False</Private>
     </Reference>
-    <Reference Include="Game.Core.Map.Simulation">
+    <Reference Include="Game.Core.Map.Simulation" Publicize="true">
       <HintPath>$(SPZ2_PATH)\Game.Core.Map.Simulation.dll</HintPath>
 	  <Private>False</Private>
     </Reference>
@@ -78,7 +82,7 @@
 		  <HintPath>$(SPZ2_PATH)\Game.Core.Coordinates.dll</HintPath>
 		  <Private>False</Private>
 	  </Reference>
-	  <Reference Include="Game.Content.Features">
+	  <Reference Include="Game.Content.Features" Publicize="true">
 		  <HintPath>$(SPZ2_PATH)\Game.Content.Features.dll</HintPath>
 		  <Private>False</Private>
 	  </Reference>
@@ -90,15 +94,15 @@
 		  <HintPath>$(SPZ2_PATH)\Game.Core.Content.dll</HintPath>
 		  <Private>False</Private>
 	  </Reference>
-    <Reference Include="Game.Orchestration">
+    <Reference Include="Game.Orchestration" Publicize="true">
       <HintPath>$(SPZ2_PATH)\Game.Orchestration.dll</HintPath>
 	  <Private>False</Private>
     </Reference>
-	  <Reference Include="Game.Interaction">
+	  <Reference Include="Game.Interaction" Publicize="true">
 		  <HintPath>$(SPZ2_PATH)\Game.Interaction.dll</HintPath>
 		  <Private>False</Private>
 	  </Reference>
-    <Reference Include="SPZGameAssembly">
+    <Reference Include="SPZGameAssembly" Publicize="true">
       <HintPath>$(SPZ2_PATH)\SPZGameAssembly.dll</HintPath>
       <Private>False</Private>
     </Reference>
@@ -114,11 +118,11 @@
 		  <HintPath>$(SPZ2_PATH)\UnityEngine.UI.dll</HintPath>
 		  <Private>False</Private>
 	  </Reference>
-	<Reference Include="MainMenuAssembly">
+	<Reference Include="MainMenuAssembly" Publicize="true">
 	  <HintPath>$(SPZ2_PATH)\MainMenuAssembly.dll</HintPath>
       <Private>False</Private>
 	</Reference>
-	  <Reference Include="Core.Localization">
+	  <Reference Include="Core.Localization" Publicize="true">
 		  <HintPath>$(SPZ2_PATH)\Core.Localization.dll</HintPath>
 		  <Private>False</Private>
 	  </Reference>

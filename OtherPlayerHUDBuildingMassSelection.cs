@@ -18,11 +18,11 @@ namespace Shapez2Multiplayer
         }
         public void Update(HUDBuildingMassSelection hudBuildingMassSelection)
         {
-            Update((GlobalTileCoordinate?)Encoding.HUDBuildingMassSelectionAreaSelectionEnd_GInfo.GetValue(hudBuildingMassSelection),
-                (GlobalTileCoordinate?)Encoding.HUDBuildingMassSelectionAreaSelectionStart_GInfo.GetValue(hudBuildingMassSelection),
-                (HUDMassSelectionMode)Encoding.HUDBuildingMassSelectionAreaCurrentModeInfo.GetValue(hudBuildingMassSelection),
-                (HashSet<BuildingModel>)Encoding.HUDBuildingMassSelectionAreaPendingSelectionInfo.GetValue(hudBuildingMassSelection),
-                HoverAnimationsFromIList((IList)Encoding.HUDBuildingMassSelectionAreaHoverAnimationsInfo.GetValue(hudBuildingMassSelection)));
+            Update(hudBuildingMassSelection.AreaSelectionEnd_G,
+                hudBuildingMassSelection.AreaSelectionStart_G,
+                hudBuildingMassSelection.CurrentMode,
+                hudBuildingMassSelection.PendingSelection,
+                HoverAnimationsFromIList(hudBuildingMassSelection.HoverAnimations));
         }
         protected override void OnHover(BuildingModel target)
         {

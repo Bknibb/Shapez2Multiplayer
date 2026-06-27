@@ -32,15 +32,6 @@ namespace Shapez2Multiplayer.Packets
             Encoding.Encode(ResearchManagerSerializedData, stream);
             return true;
         }
-        public static readonly FieldInfo ShapeIdManagerInfo = AccessTools.Field(typeof(ResearchShapeStorage), "ShapeIdManager");
-        public static readonly PropertyInfo BlueprintCurrencyManagerTotalAmountSpentInfo = AccessTools.Property(typeof(BlueprintCurrencyManager), nameof(BlueprintCurrencyManager.TotalAmountSpent));
-        public static readonly PropertyInfo ResearchPointStorageTotalSpentInfo = AccessTools.Property(typeof(ResearchPointStorage), nameof(ResearchPointStorage.TotalSpent));
-        public static readonly MethodInfo ResearchLinearUpgradeManagerSetLevelInfo = AccessTools.Method(typeof(ResearchLinearUpgradeManager), "SetLevel");
-        public static readonly FieldInfo ResearchUnlockManager_OnPlayerAboutToUnlockResearchInfo = AccessTools.Field(typeof(ResearchUnlockManager), "_OnPlayerAboutToUnlockResearch");
-        public static readonly FieldInfo ResearchUnlockManager_OnResearchManuallyUnlockedByPlayerInfo = AccessTools.Field(typeof(ResearchUnlockManager), "_OnResearchManuallyUnlockedByPlayer");
-        public static readonly FieldInfo ResearchPlayerLevelGoalManagerLevelsInfo = AccessTools.Field(typeof(ResearchPlayerLevelGoalManager), "Levels");
-        public static readonly FieldInfo ResearchPlayerLevelGoalManager_OnLeveledUpInfo = AccessTools.Field(typeof(ResearchPlayerLevelGoalManager), "_OnLeveledUp");
-        public static readonly FieldInfo ResearchPlayerLevelGoalManager_OnChangedInfo = AccessTools.Field(typeof(ResearchPlayerLevelGoalManager), "_OnChanged");
         public void Handle(IConnection? connection, InfoConnection? routedFrom = null)
         {
             if (connection != null)
@@ -55,12 +46,12 @@ namespace Shapez2Multiplayer.Packets
                 if (!researchManager.Progress.IsManuallyUnlocked(upgradeId))
                 {
                     var upgrade = researchManager.Layout.GetUpgrade(upgradeId);
-                    ((MultiRegisterEvent<IResearchUpgrade>)ResearchUnlockManager_OnPlayerAboutToUnlockResearchInfo.GetValue(researchManager.UnlockManager)).Invoke(upgrade);
+                    researchManager.UnlockManager._OnPlayerAboutToUnlockResearch.Invoke(upgrade);
                     researchManager.UnlockManager.TryUnlock(upgrade, true);
-                    ((MultiRegisterEvent<IResearchUpgrade>)ResearchUnlockManager_OnResearchManuallyUnlockedByPlayerInfo.GetValue(researchManager.UnlockManager)).Invoke(upgrade);
+                    researchManager.UnlockManager._OnResearchManuallyUnlockedByPlayer.Invoke(upgrade);
                 }
             }
-            var ShapeIdManager = (IShapeIdManager)ShapeIdManagerInfo.GetValue(researchManager.ShapeStorage);
+            var ShapeIdManager = researchManager.ShapeStorage.ShapeIdManager;
             foreach (var kvp in ResearchManagerSerializedData.Shapes.StoredShapes)
             {
                 var shapeId = ShapeIdManager.Resolve(kvp.Key);
@@ -74,15 +65,15 @@ namespace Shapez2Multiplayer.Packets
                 }
             }
             researchManager.BlueprintCurrencyManager.SetBlueprintCurrency(ResearchManagerSerializedData.BlueprintCurrency.BlueprintCurrency);
-            BlueprintCurrencyManagerTotalAmountSpentInfo.SetValue(researchManager.BlueprintCurrencyManager, ResearchManagerSerializedData.BlueprintCurrency.TotalAmountSpent);
+            researchManager.BlueprintCurrencyManager.TotalAmountSpent = ResearchManagerSerializedData.BlueprintCurrency.TotalAmountSpent;
             if (researchManager.PointStorage.Points.Amount != ResearchManagerSerializedData.PointCurrency.Points) researchManager.PointStorage.Set(new ResearchPointCurrency(ResearchManagerSerializedData.PointCurrency.Points));
-            ResearchPointStorageTotalSpentInfo.SetValue(researchManager.PointStorage, new ResearchPointCurrency(ResearchManagerSerializedData.PointCurrency.TotalSpent));
+            researchManager.PointStorage.TotalSpent = new ResearchPointCurrency(ResearchManagerSerializedData.PointCurrency.TotalSpent);
             foreach (var kvp in ResearchManagerSerializedData.LinearUpgrades.UpgradeLevels)
             {
                 var linearUpgradeId = new ResearchLinearUpgradeId(kvp.Key);
                 if (!researchManager.LinearUpgradeManager.Levels.TryGetValue(linearUpgradeId, out int level) || level != kvp.Value)
                 {
-                    ResearchLinearUpgradeManagerSetLevelInfo.Invoke(researchManager.LinearUpgradeManager, new object[] { linearUpgradeId, kvp.Value });
+                    researchManager.LinearUpgradeManager.SetLevel(linearUpgradeId, kvp.Value);
                     //if (researchManager.LinearUpgradeManager.TryGetUpgrade(linearUpgradeId, out var _Upgrade))
                     //{
                     //    Shapez2Multiplayer.PassiveEventBus.Emit<PlayerUpgradedLinearUpgradeEvent>(new PlayerUpgradedLinearUpgradeEvent(Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer, _Upgrade));
@@ -95,9 +86,9 @@ namespace Shapez2Multiplayer.Packets
             {
                 researchManager.PlayerLevel.GrantPlayerLevel();
             }
-            var levels = (Dictionary<PlayerLevelGoalId, int>)ResearchPlayerLevelGoalManagerLevelsInfo.GetValue(researchManager.PlayerLevelGoals);
-            var ResearchPlayerLevelGoalManagerOnLeveledUp = (MultiRegisterEvent<PlayerLevelGoalId, int>)ResearchPlayerLevelGoalManager_OnLeveledUpInfo.GetValue(researchManager.PlayerLevelGoals);
-            var ResearchPlayerLevelGoalManagerOnChanged = (MultiRegisterEvent)ResearchPlayerLevelGoalManager_OnChangedInfo.GetValue(researchManager.PlayerLevelGoals);
+            var levels = researchManager.PlayerLevelGoals.Levels;
+            var ResearchPlayerLevelGoalManagerOnLeveledUp = researchManager.PlayerLevelGoals._OnLeveledUp;
+            var ResearchPlayerLevelGoalManagerOnChanged = researchManager.PlayerLevelGoals._OnChanged;
             foreach (var kvp in ResearchManagerSerializedData.PlayerLevelGoals.GoalLevels)
             {
                 var levelGoalId = new PlayerLevelGoalId(kvp.Key);

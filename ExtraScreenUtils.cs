@@ -16,11 +16,7 @@ namespace Shapez2Multiplayer
         {
             return ExtraRaycastHelpers.WorldToScreenPointDouble(worldCoordinate, viewport.MainCamera);
         }
-        public static MethodInfo ScreenUtilsRaytraceTileCoordinatesInfo = AccessTools.Method(typeof(ScreenUtils), "RaytraceTileCoordinates");
-        private static void RaytraceTileCoordinates(WorldCoordinate origin, WorldVector direction, float distance, ICollection<GlobalTileCoordinate> tiles)
-        {
-            ScreenUtilsRaytraceTileCoordinatesInfo.Invoke(null, new object[] { origin, direction, distance, tiles });
-        }
+        // todo: maybe make this a reverse patch
         public static bool TryFindBuildingAtScreenPosition(Viewport viewport, float2 screenPosition, IMapModel map, out BuildingModel building, short? overrideIslandLayer = null, short? overrideBuildingLayer = null, bool? overrideShowAllBuildingLayers = null)
         {
             var islandLayer = overrideIslandLayer ?? viewport.IslandLayer;
@@ -38,7 +34,7 @@ namespace Shapez2Multiplayer
             RaycastHelpers.RaycastPlane(ray.Item1, ray.Item2, planeNormal, planePoint2, out double3 intersection2, out double rayDistance2);
             intersection = (flag ? intersection : new double3(cursorRay.origin));
             using ScopedList<GlobalTileCoordinate> scopedList = ScopedList<GlobalTileCoordinate>.Get();
-            ExtraScreenUtils.RaytraceTileCoordinates((float3)intersection, (float3)ray.Item2, (float)(rayDistance2 - rayDistance1), scopedList);
+            ScreenUtils.RaytraceTileCoordinates((float3)intersection, (float3)ray.Item2, (float)(rayDistance2 - rayDistance1), scopedList);
             Bounds bounds = default;
             for (int i = 0; i < scopedList.Count; i++)
             {

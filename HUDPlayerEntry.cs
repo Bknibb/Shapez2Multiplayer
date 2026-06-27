@@ -36,7 +36,7 @@ namespace Shapez2Multiplayer
             PingText.text = Connection.Ping.ToString();
         }
 
-        protected override void OnDispose()
+        public override void OnDispose()
         {
             
         }

@@ -44,7 +44,6 @@ namespace Shapez2Multiplayer
         private HUDLocalizedText UIStatScenario;
         private HUDLocalizedText UIStatStructureCount;
         private GameObject UIVersionMismatchOverlay;
-        private readonly MethodInfo CreateModList = AccessTools.Method(typeof(HUDSavegameEntryPrefab), "CreateModList");
         public ILobbyData Entry
         {
             get
@@ -69,7 +68,7 @@ namespace Shapez2Multiplayer
             this.SavegameModdingContextDivergenceBarrier = new SavegameModdingContextDivergenceBarrier(moddingEnvironment, dialogStack);
         }
 
-        protected override void OnDispose()
+        public override void OnDispose()
         {
             this.UIBtnJoinGame.OnClick.RemoveListener(new UnityAction(this.OnClickJoinButton));
         }
@@ -119,7 +118,7 @@ namespace Shapez2Multiplayer
                     UIModsCount.Text = StringFormatting.FormatGenericCount(mods.ModSignatures.Count);
                     try
                     {
-                        UIModList.Description = (IText)CreateModList.Invoke(null, new object[] { mods.ModSignatures });
+                        UIModList.Description = HUDSavegameEntryPrefab.CreateModList(mods.ModSignatures);
                     } catch (Exception ex)
                     {
                         Logger.Exception?.LogException(ex);
@@ -152,42 +151,27 @@ namespace Shapez2Multiplayer
             if (Entry is SteamLobby steamLobby) MultiplayerCore.JoinLobby(steamLobby.Lobby);
             else if (Entry is DiscoveredServer discoveredServer) MultiplayerCore.DirectConnect(discoveredServer.Address);
         }
-        private static readonly FieldInfo UIBtnResumeGameInfo = AccessTools.Field(typeof(HUDSavegameEntryPrefab), "UIBtnResumeGame");
-        private static readonly FieldInfo UICompletedIndicatorInfo = AccessTools.Field(typeof(HUDSavegameEntryPrefab), "UICompletedIndicator");
-        private static readonly FieldInfo UILoadFailedOverlayInfo = AccessTools.Field(typeof(HUDSavegameEntryPrefab), "UILoadFailedOverlay");
-        private static readonly FieldInfo UIModListInfo = AccessTools.Field(typeof(HUDSavegameEntryPrefab), "UIModList");
-        private static readonly FieldInfo UIModsCountInfo = AccessTools.Field(typeof(HUDSavegameEntryPrefab), "UIModsCount");
-        private static readonly FieldInfo UINameTextInfo = AccessTools.Field(typeof(HUDSavegameEntryPrefab), "UINameText");
-        private static readonly FieldInfo UISavegameUIDTextInfo = AccessTools.Field(typeof(HUDSavegameEntryPrefab), "UISavegameUIDText");
-        private static readonly FieldInfo UIStatDifficultyInfo = AccessTools.Field(typeof(HUDSavegameEntryPrefab), "UIStatDifficulty");
-        private static readonly FieldInfo UIStatGameRulesInfo = AccessTools.Field(typeof(HUDSavegameEntryPrefab), "UIStatGameRules");
-        private static readonly FieldInfo UIStatModeInfo = AccessTools.Field(typeof(HUDSavegameEntryPrefab), "UIStatMode");
-        private static readonly FieldInfo UIStatPlaytimeInfo = AccessTools.Field(typeof(HUDSavegameEntryPrefab), "UIStatPlaytime");
-        private static readonly FieldInfo UIStatResearchProgressInfo = AccessTools.Field(typeof(HUDSavegameEntryPrefab), "UIStatResearchProgress");
-        private static readonly FieldInfo UIStatScenarioInfo = AccessTools.Field(typeof(HUDSavegameEntryPrefab), "UIStatScenario");
-        private static readonly FieldInfo UIStatStructureCountInfo = AccessTools.Field(typeof(HUDSavegameEntryPrefab), "UIStatStructureCount");
-        private static readonly FieldInfo UIVersionMismatchOverlayInfo = AccessTools.Field(typeof(HUDSavegameEntryPrefab), "UIVersionMismatchOverlay");
         public void FromSavegameEntry(HUDSavegameEntryPrefab savegameEntry)
         {
-            UIBtnJoinGame = (HUDButton)UIBtnResumeGameInfo.GetValue(savegameEntry);
+            UIBtnJoinGame = savegameEntry.UIBtnResumeGame;
             UIBtnJoinGame.Text = "menu.multiplayer.join".T();
             UIBtnJoinGame.OnClick.AddListener(new UnityAction(this.OnClickJoinButton));
-            UICompletedIndicator = (GameObject)UICompletedIndicatorInfo.GetValue(savegameEntry);
-            UILoadFailedOverlay = (GameObject)UILoadFailedOverlayInfo.GetValue(savegameEntry);
+            UICompletedIndicator = savegameEntry.UICompletedIndicator;
+            UILoadFailedOverlay = savegameEntry.UILoadFailedOverlay;
             UILoadFailedOverlay.GetComponentInChildren<HUDLocalizedText>().Text = "menu.multiplayer.session-load-fail".T();
-            UIModList = (HUDTooltipTarget)UIModListInfo.GetValue(savegameEntry);
-            UIModsCount = (HUDLocalizedText)UIModsCountInfo.GetValue(savegameEntry);
-            UINameText = (HUDLocalizedText)UINameTextInfo.GetValue(savegameEntry);
-            UISavegameUIDText = (HUDLocalizedText)UISavegameUIDTextInfo.GetValue(savegameEntry);
-            UIStatDifficulty = (HUDLocalizedText)UIStatDifficultyInfo.GetValue(savegameEntry);
-            UIStatGameRules = (HUDLocalizedText)UIStatGameRulesInfo.GetValue(savegameEntry);
-            UIStatMode = (HUDLocalizedText)UIStatModeInfo.GetValue(savegameEntry);
-            UIStatPlaytime = (HUDLocalizedText)UIStatPlaytimeInfo.GetValue(savegameEntry);
-            UIStatResearchProgress = (HUDLocalizedText)UIStatResearchProgressInfo.GetValue(savegameEntry);
-            UIStatScenario = (HUDLocalizedText)UIStatScenarioInfo.GetValue(savegameEntry);
-            UIStatStructureCount = (HUDLocalizedText)UIStatStructureCountInfo.GetValue(savegameEntry);
-            UIVersionMismatchOverlay = (GameObject)UIVersionMismatchOverlayInfo.GetValue(savegameEntry);
-            List<HUDComponent> components = new List<HUDComponent>(savegameEntry.GetChildComponentReferences());
+            UIModList = savegameEntry.UIModList;
+            UIModsCount = savegameEntry.UIModsCount;
+            UINameText = savegameEntry.UINameText;
+            UISavegameUIDText = savegameEntry.UISavegameUIDText;
+            UIStatDifficulty = savegameEntry.UIStatDifficulty;
+            UIStatGameRules = savegameEntry.UIStatGameRules;
+            UIStatMode = savegameEntry.UIStatMode;
+            UIStatPlaytime = savegameEntry.UIStatPlaytime;
+            UIStatResearchProgress = savegameEntry.UIStatResearchProgress;
+            UIStatScenario = savegameEntry.UIStatScenario;
+            UIStatStructureCount = savegameEntry.UIStatStructureCount;
+            UIVersionMismatchOverlay = savegameEntry.UIVersionMismatchOverlay;
+            List<HUDComponent> components = new List<HUDComponent>(savegameEntry.ChildComponentReferences);
             for (int i = 0; i < transform.Find("Actions").childCount; i++)
             {
                 var child = transform.Find("Actions").GetChild(i);
@@ -196,7 +180,7 @@ namespace Shapez2Multiplayer
             Destroy(transform.Find("Actions").gameObject);
             components.Remove(transform.Find("BtnDelete").GetComponent<HUDComponent>());
             Destroy(transform.Find("BtnDelete").gameObject);
-            savegameEntry.SetChildComponentReferences(components.ToArray());
+            savegameEntry.ChildComponentReferences = components.ToArray();
         }
         private void SetUIToFailureState()
         {

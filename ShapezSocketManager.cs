@@ -248,7 +248,7 @@ namespace Shapez2Multiplayer
         public void ForceUpdateCursor()
         {
             SyncCursorTimer = 0.0f;
-            var cursorState = (CursorHoverState)Shapez2Multiplayer.GameCursorManager_StateInfo.GetValue(Shapez2Multiplayer.GameCursorManager);
+            var cursorState = Shapez2Multiplayer.GameCursorManager._State;
             if (ScreenUtils.TryGetWorldCoordinate(Shapez2Multiplayer.GameSessionOrchestrator.Viewport, Shapez2Multiplayer.GameSessionOrchestrator.Viewport.CursorScreenPosition, out var cursorWorldPosition))
             {
                 LastCursorState = cursorState;
@@ -320,7 +320,7 @@ namespace Shapez2Multiplayer
             if (SyncCursorTimer >= SYNC_CURSOR_TIME)
             {
                 SyncCursorTimer = 0.0f;
-                var cursorState = (CursorHoverState)Shapez2Multiplayer.GameCursorManager_StateInfo.GetValue(Shapez2Multiplayer.GameCursorManager);
+                var cursorState = Shapez2Multiplayer.GameCursorManager._State;
                 if (ScreenUtils.TryGetWorldCoordinate(Shapez2Multiplayer.GameSessionOrchestrator.Viewport, Shapez2Multiplayer.GameSessionOrchestrator.Viewport.CursorScreenPosition, out var cursorWorldPosition) && (cursorState != LastCursorState || !((float3)cursorWorldPosition).Equals(LastCursorWorldPosition)))
                 {
                     LastCursorState = cursorState;

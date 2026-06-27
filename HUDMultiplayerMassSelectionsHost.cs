@@ -50,7 +50,7 @@ namespace Shapez2Multiplayer
             return new OtherPlayerHUDIslandMassSelection(Map, IslandPreviewDrawer, connection);
         }
 
-        protected override void OnDispose()
+        public override void OnDispose()
         {
             Instance = null;
         }

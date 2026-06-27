@@ -2,6 +2,7 @@
 using Core.Dependency;
 using Core.Events;
 using Core.Localization;
+using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using Game.Core.Coordinates;
 using Game.Core.Modding;
@@ -34,111 +35,44 @@ namespace Shapez2Multiplayer
         public static GameOrchestrator GameOrchestrator;
         public static Game.Orchestration.Game Game;
         public static PrefabViewReference<HUDSavegameEntryPrefab> UISavegamePrefab;
-        private static readonly FieldInfo CurrentSubOrchestratorInfo = AccessTools.Field(typeof(GameOrchestrator), "CurrentSubOrchestrator");
-        //private static readonly FieldInfo SavegameInfo = AccessTools.Field(typeof(GameSessionOrchestrator), "Savegame");
-        //private static readonly FieldInfo SavegameOptionsManagerInfo = AccessTools.Field(typeof(GameSessionOrchestrator), "SavegameOptionsManager");
-        //private static readonly FieldInfo ModeInfo = AccessTools.Field(typeof(GameSessionOrchestrator), "Mode");
-        //private static readonly FieldInfo ResearchInfo = AccessTools.Field(typeof(GameSessionOrchestrator), "Research");
-        //private static readonly FieldInfo MapModelInfo = AccessTools.Field(typeof(GameSessionOrchestrator), "MapModel");
-        private static readonly FieldInfo FileAccessorInfo = AccessTools.Field(typeof(GameSessionOrchestrator), "FileAccessor");
-        //private static readonly FieldInfo PlayerInteractionOrchestratorInfo = AccessTools.Field(typeof(GameSessionOrchestrator), "PlayerInteractionOrchestrator");
-        //private static readonly FieldInfo EntityPlacementRunnerInfo = AccessTools.Field("PlayerInteractionOrchestrator:EntityPlacementRunner");
-        private static readonly MethodInfo CreatePlacementActionInfo = AccessTools.Method(typeof(EntityPlacementRunner), "CreatePlacementAction");
-        //private static readonly FieldInfo PlayerActionsInfo = AccessTools.Field(typeof(EntityPlacementRunner), "PlayerActions");
-        private static readonly FieldInfo ActiveRulesInfo = AccessTools.Field(typeof(GameRuleManager), "ActiveRules");
-        private static readonly MethodInfo CreateModSignatureInfo = AccessTools.Method(typeof(Savegame), "CreateModSignature");
-        private static readonly MethodInfo WriteToStreamInfo = AccessTools.Method(typeof(SaveFileAccessor), "WriteToStream");
-        private static readonly FieldInfo UISavegamePrefabInfo = AccessTools.Field(typeof(HUDMenuPlayState), "UISavegamePrefab");
-        //private static readonly FieldInfo UIDialogModifySavegame = AccessTools.Field(typeof(HUDSavegameEntryPrefab), "UIDialogModifySavegame");
-        private static readonly FieldInfo GameSessionOrchestratorDependencyContainerInfo = AccessTools.Field(typeof(GameSessionOrchestrator), "DependencyContainer");
-        //private static readonly FieldInfo GameSessionOrchestratorGameFlowNavigatorInfo = AccessTools.Field(typeof(GameSessionOrchestrator), "GameFlowNavigator");
-        //private static readonly FieldInfo GameSessionOrchestratorSimulationSpeedInfo = AccessTools.Field(typeof(GameSessionOrchestrator), "SimulationSpeed");
-        //private static readonly FieldInfo GameSessionOrchestratorDialogStackInfo = AccessTools.Field(typeof(GameSessionOrchestrator), "DialogStack");
-        private static readonly FieldInfo GameSessionOrchestratorEntityPlacementDrawerInfo = AccessTools.Field(typeof(GameSessionOrchestrator), "EntityPlacementDrawer");
-        private static readonly FieldInfo GameSessionOrchestratorLegacyHudDrawOptionsInfo = AccessTools.Field(typeof(GameSessionOrchestrator), "LegacyHudDrawOptions");
-        //private static readonly FieldInfo GameSessionOrchestratorHubObserverInfo = AccessTools.Field(typeof(GameSessionOrchestrator), "HubObserver");
-        //private static readonly FieldInfo GameSessionOrchestratorThemeInfo = AccessTools.Field(typeof(GameSessionOrchestrator), "Theme");
-        //private static readonly FieldInfo GameSessionOrchestratorBuildingPlacementIndicatorsInfo = AccessTools.Field(typeof(GameSessionOrchestrator), "BuildingPlacementIndicators");
-        //private static readonly FieldInfo GameSessionOrchestratorTutorialInfo = AccessTools.Field(typeof(GameSessionOrchestrator), "Tutorial");
-        //private static readonly FieldInfo GameSessionOrchestratorLoggerInfo = AccessTools.Field(typeof(GameSessionOrchestrator), "Logger");
-        private static readonly FieldInfo GameSessionOrchestratorHUDInfo = AccessTools.Field(typeof(GameSessionOrchestrator), "HUD");
-        private static readonly FieldInfo HUDRootInfo = AccessTools.Field(typeof(HUD), "Root");
-        private static readonly FieldInfo MainMenuOrchestratorBackgroundGameOrchestratorInfo = AccessTools.Field(typeof(MainMenuOrchestrator), "BackgroundGameOrchestrator");
-        private static readonly FieldInfo MainMenuOrchestratorStateManagerInfo = AccessTools.Field(typeof(MainMenuOrchestrator), "StateManager");
-        //private static readonly FieldInfo HUDMainMenuStateDialogStackInfo = AccessTools.Field(typeof(HUDMainMenuState), "DialogStack");
-        //private static readonly FieldInfo MainMenuStateManagerUISoundPlayerInfo = AccessTools.Field(typeof(MainMenuStateManager), "UISoundPlayer");
-        private static readonly MethodInfo MainMenuOrchestratorFadeOutInfo = AccessTools.Method(typeof(MainMenuOrchestrator), "FadeOut");
-        //private static readonly FieldInfo MainMenuOrchestratorLoggerInfo = AccessTools.Field(typeof(MainMenuOrchestrator), "Logger");
-        private static readonly FieldInfo MainMenuOrchestratorFlowNavigatorInfo = AccessTools.Field(typeof(MainMenuOrchestrator), "FlowNavigator");
-        //private static readonly FieldInfo MainMenuOrchestratorAnalyticsTrackerInfo = AccessTools.Field(typeof(MainMenuOrchestrator), "AnalyticsTracker");
-        private static readonly FieldInfo MainMenuOrchestratorDependencyContainerInfo = AccessTools.Field(typeof(MainMenuOrchestrator), "DependencyContainer");
-        public static readonly FieldInfo HUDLocalizedTextUITextInfo = AccessTools.Field(typeof(HUDLocalizedText), "UIText");
-        public static readonly FieldInfo HUDButtonUITextInfo = AccessTools.Field(typeof(HUDButton), "UIText");
-        public static readonly FieldInfo HUDButtonUIButtonInfo = AccessTools.Field(typeof(HUDButton), "UIButton");
-        public static readonly FieldInfo HUDButtonUIMainGroupInfo = AccessTools.Field(typeof(HUDButton), "UIMainGroup");
-        public static readonly FieldInfo HUDButtonUIHoverIndicatorGroupInfo = AccessTools.Field(typeof(HUDButton), "UIHoverIndicatorGroup");
-        public static readonly FieldInfo HUDButtonUIMainTransformInfo = AccessTools.Field(typeof(HUDButton), "UIMainTransform");
-        public static readonly MethodInfo BuiltinPlacementDrawersGetDrawersInfo = AccessTools.Method("BuiltinPlacementDrawers:GetDrawers", new Type[] { typeof(IMapModel), typeof(GameMode), typeof(IHubObserver), typeof(VisualTheme), typeof(IBuildingPlacementIndicatorAccessor), typeof(IIslandPreviewDrawer), typeof(ITutorialHighlightProvider), typeof(ILogger) });
-        public static readonly FieldInfo GameInputManagerCursorManagerInfo = AccessTools.Field(typeof(GameInputManager), "CursorManager");
-        public static ITickableOrchestrator CurrentSubOrchestrator => (ITickableOrchestrator)CurrentSubOrchestratorInfo.GetValue(GameOrchestrator);
+        public static ITickableOrchestrator CurrentSubOrchestrator => GameOrchestrator.CurrentSubOrchestrator;
         public static GameSessionOrchestrator? GameSessionOrchestrator => CurrentSubOrchestrator is GameSessionOrchestrator gameSessionOrchestrator ? gameSessionOrchestrator : null;
         public static MainMenuOrchestrator? MainMenuOrchestrator => CurrentSubOrchestrator is MainMenuOrchestrator mainMenuOrchestrator ? mainMenuOrchestrator : null;
-        public static GameSessionOrchestrator? MainMenuOrchestratorBackgroundGameOrchestrator => CurrentSubOrchestrator is MainMenuOrchestrator mainMenuOrchestrator ? (GameSessionOrchestrator)MainMenuOrchestratorBackgroundGameOrchestratorInfo.GetValue(mainMenuOrchestrator) : null;
-        public static MainMenuStateManager? MainMenuOrchestratorStateManager => CurrentSubOrchestrator is MainMenuOrchestrator mainMenuOrchestrator ? (MainMenuStateManager)MainMenuOrchestratorStateManagerInfo.GetValue(mainMenuOrchestrator) : null;
-        //public static IHUDDialogStack? MainMenuOrchestratorDialogStack => CurrentSubOrchestrator is MainMenuOrchestrator mainMenuOrchestrator ? (IHUDDialogStack)HUDMainMenuStateDialogStackInfo.GetValue(((MainMenuStateManager)MainMenuOrchestratorStateManagerInfo.GetValue(mainMenuOrchestrator)).CurrentState) : null;
+        public static GameSessionOrchestrator? MainMenuOrchestratorBackgroundGameOrchestrator => CurrentSubOrchestrator is MainMenuOrchestrator mainMenuOrchestrator ? mainMenuOrchestrator.BackgroundGameOrchestrator : null;
+        public static MainMenuStateManager? MainMenuOrchestratorStateManager => CurrentSubOrchestrator is MainMenuOrchestrator mainMenuOrchestrator ? mainMenuOrchestrator.StateManager : null;
         public static IHUDDialogStack? MainMenuOrchestratorDialogStack => MainMenuOrchestratorDependencyContainer?.Resolve<IHUDDialogStack>();
-        //public static IUISoundPlayer? MainMenuStateManagerUISoundPlayer => CurrentSubOrchestrator is MainMenuOrchestrator mainMenuOrchestrator ? (IUISoundPlayer)MainMenuStateManagerUISoundPlayerInfo.GetValue(MainMenuOrchestratorStateManagerInfo.GetValue(mainMenuOrchestrator)) : null;
         public static IUISoundPlayer? MainMenuStateManagerUISoundPlayer => MainMenuOrchestratorDependencyContainer?.Resolve<IUISoundPlayer>();
-        //public static ILogger? MainMenuOrchestratorLogger => CurrentSubOrchestrator is MainMenuOrchestrator mainMenuOrchestrator ? (ILogger)MainMenuOrchestratorLoggerInfo.GetValue(mainMenuOrchestrator) : null;
         public static ILogger? MainMenuOrchestratorLogger => MainMenuOrchestratorDependencyContainer?.Resolve<ILogger>();
-        public static IGameFlowNavigator? MainMenuOrchestratorFlowNavigator => CurrentSubOrchestrator is MainMenuOrchestrator mainMenuOrchestrator ? (IGameFlowNavigator)MainMenuOrchestratorFlowNavigatorInfo.GetValue(mainMenuOrchestrator) : null;
-        //public static IAnalyticsTracker? MainMenuOrchestratorAnalyticsTracker => CurrentSubOrchestrator is MainMenuOrchestrator mainMenuOrchestrator ? (IAnalyticsTracker)MainMenuOrchestratorAnalyticsTrackerInfo.GetValue(mainMenuOrchestrator) : null;
+        public static IGameFlowNavigator? MainMenuOrchestratorFlowNavigator => CurrentSubOrchestrator is MainMenuOrchestrator mainMenuOrchestrator ? mainMenuOrchestrator.FlowNavigator : null;
         public static IAnalyticsTracker? MainMenuOrchestratorAnalyticsTracker => MainMenuOrchestratorDependencyContainer?.Resolve<IAnalyticsTracker>();
-        //public static Savegame? Savegame => CurrentSubOrchestrator is GameSessionOrchestrator gameSessionOrchestrator ? (Savegame)SavegameInfo.GetValue(gameSessionOrchestrator) : null;
         public static Savegame? Savegame => GameSessionOrchestratorDependencyContainer?.Resolve<Savegame>();
-        //public static SavegameOptionsManager? SavegameOptionsManager => CurrentSubOrchestrator is GameSessionOrchestrator gameSessionOrchestrator ? (SavegameOptionsManager)SavegameOptionsManagerInfo.GetValue(gameSessionOrchestrator) : null;
         public static SavegameOptionsManager? SavegameOptionsManager => GameSessionOrchestratorDependencyContainer?.Resolve<SavegameOptionsManager>();
-        //public static GameMode? Mode => CurrentSubOrchestrator is GameSessionOrchestrator gameSessionOrchestrator ? (GameMode)ModeInfo.GetValue(gameSessionOrchestrator) : null;
         public static GameMode? Mode => GameSessionOrchestratorDependencyContainer?.Resolve<GameMode>();
-        //public static ResearchManager? Research => CurrentSubOrchestrator is GameSessionOrchestrator gameSessionOrchestrator ? (ResearchManager)ResearchInfo.GetValue(gameSessionOrchestrator) : null;
         public static ResearchManager? Research => GameSessionOrchestratorDependencyContainer?.Resolve<ResearchManager>();
-        //public static MapModel? MapModel => CurrentSubOrchestrator is GameSessionOrchestrator gameSessionOrchestrator ? (MapModel)MapModelInfo.GetValue(gameSessionOrchestrator) : null;
         public static IMapModel? MapModel => GameSessionOrchestratorDependencyContainer?.Resolve<IMapModel>();
-        public static SaveFileAccessor? FileAccessor => CurrentSubOrchestrator is GameSessionOrchestrator gameSessionOrchestrator ? (SaveFileAccessor)FileAccessorInfo.GetValue(gameSessionOrchestrator) : null;
-        //public static EntityPlacementRunner? EntityPlacementRunner => CurrentSubOrchestrator is GameSessionOrchestrator gameSessionOrchestrator ? (EntityPlacementRunner)EntityPlacementRunnerInfo.GetValue(PlayerInteractionOrchestratorInfo.GetValue(gameSessionOrchestrator)) : null;
+        public static SaveFileAccessor? FileAccessor => GameSessionOrchestrator?.FileAccessor;
         public static IEntityPlacementRunner? EntityPlacementRunner => GameSessionOrchestratorDependencyContainer?.Resolve<IEntityPlacementRunner>();
-        //public static PlayerActionManager? PlayerActions => CurrentSubOrchestrator is GameSessionOrchestrator gameSessionOrchestrator ? (PlayerActionManager)PlayerActionsInfo.GetValue(EntityPlacementRunnerInfo.GetValue(PlayerInteractionOrchestratorInfo.GetValue(gameSessionOrchestrator))) : null;
         public static PlayerActionManager? PlayerActions => GameSessionOrchestratorDependencyContainer?.Resolve<PlayerActionManager>();
-        public static List<GameRule>? ActiveRules => Mode != null ? (List<GameRule>)ActiveRulesInfo.GetValue(Mode.GameRules) : null;
-        public static DependencyContainer? GameSessionOrchestratorDependencyContainer => CurrentSubOrchestrator is GameSessionOrchestrator gameSessionOrchestrator ? (DependencyContainer)GameSessionOrchestratorDependencyContainerInfo.GetValue(gameSessionOrchestrator) : null;
-        public static DependencyContainer? MainMenuOrchestratorDependencyContainer => CurrentSubOrchestrator is MainMenuOrchestrator mainMenuOrchestrator ? (DependencyContainer)MainMenuOrchestratorDependencyContainerInfo.GetValue(mainMenuOrchestrator) : null;
-        //public static IGameFlowNavigator? GameFlowNavigator => CurrentSubOrchestrator is GameSessionOrchestrator gameSessionOrchestrator ? (IGameFlowNavigator)GameSessionOrchestratorGameFlowNavigatorInfo.GetValue(gameSessionOrchestrator) : null;
+        public static List<GameRule>? ActiveRules => Mode?.GameRules.ActiveRules;
+        public static DependencyContainer? GameSessionOrchestratorDependencyContainer => GameSessionOrchestrator?.DependencyContainer;
+        public static DependencyContainer? MainMenuOrchestratorDependencyContainer => MainMenuOrchestrator?.DependencyContainer;
         public static IGameFlowNavigator? GameFlowNavigator => GameSessionOrchestratorDependencyContainer?.Resolve<IGameFlowNavigator>();
-        //public static SimulationSpeedManager? SimulationSpeed => CurrentSubOrchestrator is GameSessionOrchestrator gameSessionOrchestrator ? (SimulationSpeedManager)GameSessionOrchestratorSimulationSpeedInfo.GetValue(gameSessionOrchestrator) : null;
         public static SimulationSpeedManager? SimulationSpeed => GameSessionOrchestratorDependencyContainer?.Resolve<SimulationSpeedManager>();
-        //public static HUDDialogStack? DialogStack => CurrentSubOrchestrator is GameSessionOrchestrator gameSessionOrchestrator ? (HUDDialogStack)GameSessionOrchestratorDialogStackInfo.GetValue(gameSessionOrchestrator) : null;
         public static IHUDDialogStack? DialogStack => GameSessionOrchestratorDependencyContainer?.Resolve<IHUDDialogStack>();
-        public static EntityPlacementDrawer? EntityPlacementDrawer => CurrentSubOrchestrator is GameSessionOrchestrator gameSessionOrchestrator ? (EntityPlacementDrawer)GameSessionOrchestratorEntityPlacementDrawerInfo.GetValue(gameSessionOrchestrator) : null;
-        public static FrameDrawOptions? LegacyHudDrawOptions => CurrentSubOrchestrator is GameSessionOrchestrator gameSessionOrchestrator ? (FrameDrawOptions)GameSessionOrchestratorLegacyHudDrawOptionsInfo.GetValue(gameSessionOrchestrator) : null;
-        //public static HubObserver? HubObserver => CurrentSubOrchestrator is GameSessionOrchestrator gameSessionOrchestrator ? (HubObserver)GameSessionOrchestratorHubObserverInfo.GetValue(gameSessionOrchestrator) : null;
+        public static EntityPlacementDrawer? EntityPlacementDrawer => GameSessionOrchestrator?.EntityPlacementDrawer;
+        public static FrameDrawOptions? LegacyHudDrawOptions => GameSessionOrchestrator?.LegacyHudDrawOptions;
         public static IHubObserver? HubObserver => GameSessionOrchestratorDependencyContainer?.Resolve<IHubObserver>();
-        //public static VisualTheme? Theme => CurrentSubOrchestrator is GameSessionOrchestrator gameSessionOrchestrator ? (VisualTheme)GameSessionOrchestratorThemeInfo.GetValue(gameSessionOrchestrator) : null;
         public static VisualTheme? Theme => GameSessionOrchestratorDependencyContainer?.Resolve<VisualTheme>();
-        //public static BuildingPlacementIndicatorAccessor? BuildingPlacementIndicators => CurrentSubOrchestrator is GameSessionOrchestrator gameSessionOrchestrator ? (BuildingPlacementIndicatorAccessor)GameSessionOrchestratorBuildingPlacementIndicatorsInfo.GetValue(gameSessionOrchestrator) : null;
         public static IBuildingPlacementIndicatorAccessor? BuildingPlacementIndicators => GameSessionOrchestratorDependencyContainer?.Resolve<IBuildingPlacementIndicatorAccessor>();
-        //public static TutorialManager? Tutorial => CurrentSubOrchestrator is GameSessionOrchestrator gameSessionOrchestrator ? (TutorialManager)GameSessionOrchestratorTutorialInfo.GetValue(gameSessionOrchestrator) : null;
         public static ITutorialHighlightProvider? TutorialHighlighProvider => GameSessionOrchestratorDependencyContainer?.Resolve<ITutorialHighlightProvider>();
-        //public static ILogger? GameSessionOrchestratorLogger => CurrentSubOrchestrator is GameSessionOrchestrator gameSessionOrchestrator ? (ILogger)GameSessionOrchestratorLoggerInfo.GetValue(gameSessionOrchestrator) : null;
         public static ILogger? GameSessionOrchestratorLogger => GameSessionOrchestratorDependencyContainer?.Resolve<ILogger>();
-        public static HUD? HUD => CurrentSubOrchestrator is GameSessionOrchestrator gameSessionOrchestrator ? (HUD)GameSessionOrchestratorHUDInfo.GetValue(gameSessionOrchestrator) : null;
-        public static Transform? HUDRoot => CurrentSubOrchestrator is GameSessionOrchestrator gameSessionOrchestrator ? (Transform)HUDRootInfo.GetValue(GameSessionOrchestratorHUDInfo.GetValue(gameSessionOrchestrator)) : null;
+        public static HUD? HUD => GameSessionOrchestrator?.HUD;
+        public static Transform? HUDRoot => HUD?.Root;
         public static GameInputManager? GameInputManager => GameSessionOrchestratorDependencyContainer?.Resolve<GameInputManager>();
-        public static GameCursorManager? GameCursorManager => GameInputManager != null ? (GameCursorManager)GameInputManagerCursorManagerInfo.GetValue(GameInputManager) : null;
+        public static GameCursorManager? GameCursorManager => GameInputManager?.CursorManager;
         public static IInteractionMode? InteractionMode => GameSessionOrchestratorDependencyContainer?.Resolve<IInteractionMode>();
         public static IEventSender? PassiveEventBus => GameSessionOrchestratorDependencyContainer?.Resolve<IEventSender>();
         public static HUDEvents? HudEvents => GameSessionOrchestratorDependencyContainer?.Resolve<HUDEvents>();
-
-        public static readonly FieldInfo GameCursorManager_StateInfo = AccessTools.Field(typeof(GameCursorManager), "_State");
         public Shapez2Multiplayer(ILogger logger)
         {
             Shapez2Multiplayer.logger = logger;
@@ -149,8 +83,8 @@ namespace Shapez2Multiplayer
             GameObject.DontDestroyOnLoad(dontDestroyObject);
             dontDestroyObject.AddComponent<MultiplayerDontDestroyObject>();
             MultiplayerCore.Initialize();
-            GameOrchestrator = (GameOrchestrator)AccessTools.Field(typeof(GameBootstrapper), "GameOrchestrator").GetValue(null);
-            Game = (Game.Orchestration.Game)AccessTools.Field(typeof(GameOrchestrator), "Game").GetValue(GameOrchestrator);
+            GameOrchestrator = GameBootstrapper.GameOrchestrator;
+            Game = GameOrchestrator.Game;
             Application.quitting += Quitting;
             MainMenuUIRegistrar.RegisterUI<HUDMenuMultiplayerState>(BuildMultiplayerUI, "Multiplayer", MultiplayerButtonTranslation, MultiplayerButtonTranslationId, "menu.play.title", addMainPanel: false);
             UIHook.ElementHookUI<HUDMultiplayerPausePanel, HUDPauseMenu>(BuildMultiplayerPauseUI, "Multiplayer Pause Panel");
@@ -173,36 +107,24 @@ namespace Shapez2Multiplayer
         }
         public static SavegameModsContext? CreateModSignature(IEnumerable<ResolvedMod> mods)
         {
-            return Savegame != null ? (SavegameModsContext)CreateModSignatureInfo.Invoke(Savegame, new object[] { mods }) : null;
+            return Savegame?.CreateModSignature(mods);
         }
         public static void WriteToStream(Stream outputStream, IReadOnlyDictionary<string, byte[]> serializedFileContents)
         {
-            WriteToStreamInfo.Invoke(FileAccessor, new object[] { outputStream, serializedFileContents });
+            FileAccessor?.WriteToStream(outputStream, serializedFileContents);
         }
         public static Sequence? MainMenuOrchestratorFadeOut(bool useQuitVarient = false)
         {
-            return CurrentSubOrchestrator is MainMenuOrchestrator mainMenuOrchestrator ? (Sequence)MainMenuOrchestratorFadeOutInfo.Invoke(mainMenuOrchestrator, new object[] { useQuitVarient }) : null;
+            return MainMenuOrchestrator?.FadeOut(useQuitVarient);
         }
         public static IPlayerAction? CreatePlacementAction(IPlacementData placementData, IMapModel map, Player player, out bool anyValidPlacement)
         {
-            var args = new object[] { placementData, map, player, null };
-            var entityPlacementRunner = EntityPlacementRunner;
-            if (entityPlacementRunner == null)
-            {
-                anyValidPlacement = false;
-                return null;
-            }
-            var result = (IPlayerAction)CreatePlacementActionInfo.Invoke(EntityPlacementRunner, args);
-            anyValidPlacement = (bool)args[3];
-            return result;
-        }
-        public static IEnumerable<IPlacementDrawer> GetDrawers(IMapModel map, GameMode mode, IHubObserver hubObserver, VisualTheme theme, IBuildingPlacementIndicatorAccessor buildingPlacementIndicators, IIslandPreviewDrawer islandPreviewDrawer, ITutorialHighlightProvider highlightProvider, ILogger logger)
-        {
-            return (IEnumerable<IPlacementDrawer>)BuiltinPlacementDrawersGetDrawersInfo.Invoke(null, new object[] { map, mode, hubObserver, theme, buildingPlacementIndicators, islandPreviewDrawer, highlightProvider, logger });
+            anyValidPlacement = false;
+            return ((EntityPlacementRunner?)EntityPlacementRunner)?.CreatePlacementAction(placementData, map, player, out anyValidPlacement);
         }
         public static IEnumerable<IPlacementDrawer> GetDrawers()
         {
-            return GetDrawers(MapModel, Mode, HubObserver, Theme, BuildingPlacementIndicators, GameSessionOrchestratorDependencyContainer.Resolve<IIslandPreviewDrawer>(), TutorialHighlighProvider, GameSessionOrchestratorLogger);
+            return BuiltinPlacementDrawers.GetDrawers(MapModel, Mode, HubObserver, Theme, BuildingPlacementIndicators, GameSessionOrchestratorDependencyContainer.Resolve<IIslandPreviewDrawer>(), TutorialHighlighProvider, GameSessionOrchestratorLogger);
         }
         public void Dispose()
         {
@@ -227,7 +149,7 @@ namespace Shapez2Multiplayer
             RefreshButton.name = "BtnRefresh";
             GameObject ImportButton = Panel.transform.GetChild(2).gameObject;
             RectTransform importButtonRect = ImportButton.GetComponent<RectTransform>();
-            UISavegamePrefab = (PrefabViewReference<HUDSavegameEntryPrefab>)UISavegamePrefabInfo.GetValue(Play.GetComponent<HUDMenuPlayState>());
+            UISavegamePrefab = Play.GetComponent<HUDMenuPlayState>().UISavegamePrefab;
             HUDInputField InputField = UIFactory.AddInputField(Panel.transform, hudMenuMultiplayerState);
             InputField.transform.localScale = Vector3.one;
             InputField.gameObject.name = "DirectConnectInput";
@@ -442,32 +364,29 @@ namespace Shapez2Multiplayer
         {
             MultiplayerCore.Disconnect(canReturnToMenu: false);
         }
-        public static readonly MethodInfo HUDPauseMenuStartReturnToDesktopInfo = AccessTools.Method(typeof(HUDPauseMenu), "StartReturnToDesktop");
         [HarmonyPatch(typeof(HUDPauseMenu), "TryLeaveToDesktop")]
         [HarmonyPrefix]
         public static bool HUDPauseMenuTryLeaveToDesktopPrefix(HUDPauseMenu __instance)
         {
             if (!MultiplayerCore.Client) return true;
-            HUDPauseMenuStartReturnToDesktopInfo.Invoke(__instance, new object[] { });
+            __instance.StartReturnToDesktop();
             return false;
         }
-        public static readonly MethodInfo HUDPauseMenuStartReturnToMenuInfo = AccessTools.Method(typeof(HUDPauseMenu), "StartReturnToMenu");
         [HarmonyPatch(typeof(HUDPauseMenu), "TryLeaveToMenu")]
         [HarmonyPrefix]
         public static bool HUDPauseMenuTryLeaveToMenuPrefix(HUDPauseMenu __instance)
         {
             if (!MultiplayerCore.Client) return true;
-            HUDPauseMenuStartReturnToMenuInfo.Invoke(__instance, new object[] { });
+            __instance.StartReturnToMenu();
             return false;
         }
         public static readonly List<IPlayerAction> WaitingActions = new List<IPlayerAction>();
-        public static readonly MethodInfo PlayerActionManagerExecuteActionImmediately_INTERNALInfo = AccessTools.Method(typeof(PlayerActionManager), "ExecuteActionImmediately_INTERNAL");
         [HarmonyPatch(typeof(PlayerActionManager), nameof(PlayerActionManager.ExecuteActionImmediate))]
         [HarmonyPrefix]
         public static bool PlayerActionManagerExecuteActionImmediatePrefix(PlayerActionManager __instance, IPlayerAction action)
         {
             if (!WaitingActions.Contains(action)) return true;
-            PlayerActionManagerExecuteActionImmediately_INTERNALInfo.Invoke(__instance, new object[] { action, null });
+            __instance.ExecuteActionImmediately_INTERNAL(action, out var _);
             WaitingActions.Remove(action);
             return false;
         }
@@ -488,11 +407,11 @@ namespace Shapez2Multiplayer
             }
             else if (___UndoStack[^1] is ActionModifyBuildings actionModifyBuildings)
             {
-                MultiplayerCore.SendToAll(new PlayerActionPacket(new ActionModifyBuildings(actionModifyBuildings.Map, actionModifyBuildings.Executor, new ModifyBuildingsPayload(Array.Empty<PlaceBuildingPayload>(), actionModifyBuildings.Data.Delete, actionModifyBuildings.Data.BlueprintCurrencyModification), (bool)Encoding.ActionModifyBuildingsUseBunchEditMode.GetValue(actionModifyBuildings))));
+                MultiplayerCore.SendToAll(new PlayerActionPacket(new ActionModifyBuildings(actionModifyBuildings.Map, actionModifyBuildings.Executor, new ModifyBuildingsPayload(Array.Empty<PlaceBuildingPayload>(), actionModifyBuildings.Data.Delete, actionModifyBuildings.Data.BlueprintCurrencyModification), actionModifyBuildings.UseBunchEditMode)));
             }
             else if (___UndoStack[^1] is CombinedUndoablePlayerAction combinedUndoablePlayerAction)
             {
-                MultiplayerCore.SendToAll(new PlayerActionPacket(new CombinedUndoablePlayerAction(((List<IPlayerAction>)Encoding.CombinedUndoablePlayerActionActionsInfo.GetValue(combinedUndoablePlayerAction)).Select(action =>
+                MultiplayerCore.SendToAll(new PlayerActionPacket(new CombinedUndoablePlayerAction(combinedUndoablePlayerAction.Actions.Select(action =>
                 {
                     if (action is ActionModifyIsland actionModifyIsland1)
                     {
@@ -500,7 +419,7 @@ namespace Shapez2Multiplayer
                     }
                     else if (action is ActionModifyBuildings actionModifyBuildings1)
                     {
-                        return new ActionModifyBuildings(actionModifyBuildings1.Map, actionModifyBuildings1.Executor, new ModifyBuildingsPayload(Array.Empty<PlaceBuildingPayload>(), actionModifyBuildings1.Data.Delete, actionModifyBuildings1.Data.BlueprintCurrencyModification), (bool)Encoding.ActionModifyBuildingsUseBunchEditMode.GetValue(actionModifyBuildings1));
+                        return new ActionModifyBuildings(actionModifyBuildings1.Map, actionModifyBuildings1.Executor, new ModifyBuildingsPayload(Array.Empty<PlaceBuildingPayload>(), actionModifyBuildings1.Data.Delete, actionModifyBuildings1.Data.BlueprintCurrencyModification), actionModifyBuildings1.UseBunchEditMode);
                     }
                     else
                     {
@@ -529,11 +448,11 @@ namespace Shapez2Multiplayer
                 }
                 else if (LastActionOnUndoStack is ActionModifyBuildings actionModifyBuildings)
                 {
-                    MultiplayerCore.SendToAll(new PlayerActionPacket(new ActionModifyBuildings(actionModifyBuildings.Map, actionModifyBuildings.Executor, new ModifyBuildingsPayload(actionModifyBuildings.Data.Place), (bool)Encoding.ActionModifyBuildingsUseBunchEditMode.GetValue(actionModifyBuildings))));
+                    MultiplayerCore.SendToAll(new PlayerActionPacket(new ActionModifyBuildings(actionModifyBuildings.Map, actionModifyBuildings.Executor, new ModifyBuildingsPayload(actionModifyBuildings.Data.Place), actionModifyBuildings.UseBunchEditMode)));
                 }
                 else if (LastActionOnUndoStack is CombinedUndoablePlayerAction combinedUndoablePlayerAction)
                 {
-                    MultiplayerCore.SendToAll(new PlayerActionPacket(new CombinedUndoablePlayerAction(((List<IPlayerAction>)Encoding.CombinedUndoablePlayerActionActionsInfo.GetValue(combinedUndoablePlayerAction)).Select(action =>
+                    MultiplayerCore.SendToAll(new PlayerActionPacket(new CombinedUndoablePlayerAction(combinedUndoablePlayerAction.Actions.Select(action =>
                     {
                         if (action is ActionModifyIsland actionModifyIsland1)
                         {
@@ -541,7 +460,7 @@ namespace Shapez2Multiplayer
                         }
                         else if (action is ActionModifyBuildings actionModifyBuildings1)
                         {
-                            return new ActionModifyBuildings(actionModifyBuildings1.Map, actionModifyBuildings1.Executor, new ModifyBuildingsPayload(actionModifyBuildings1.Data.Place), (bool)Encoding.ActionModifyBuildingsUseBunchEditMode.GetValue(actionModifyBuildings1));
+                            return new ActionModifyBuildings(actionModifyBuildings1.Map, actionModifyBuildings1.Executor, new ModifyBuildingsPayload(actionModifyBuildings1.Data.Place), actionModifyBuildings1.UseBunchEditMode);
                         }
                         else
                         {
@@ -574,11 +493,11 @@ namespace Shapez2Multiplayer
             }
             else if (___RedoStack[0] is ActionModifyBuildings actionModifyBuildings)
             {
-                MultiplayerCore.SendToAll(new PlayerActionPacket(new ActionModifyBuildings(actionModifyBuildings.Map, actionModifyBuildings.Executor, new ModifyBuildingsPayload(Array.Empty<PlaceBuildingPayload>(), actionModifyBuildings.Data.Delete, actionModifyBuildings.Data.BlueprintCurrencyModification), (bool)Encoding.ActionModifyBuildingsUseBunchEditMode.GetValue(actionModifyBuildings))));
+                MultiplayerCore.SendToAll(new PlayerActionPacket(new ActionModifyBuildings(actionModifyBuildings.Map, actionModifyBuildings.Executor, new ModifyBuildingsPayload(Array.Empty<PlaceBuildingPayload>(), actionModifyBuildings.Data.Delete, actionModifyBuildings.Data.BlueprintCurrencyModification), actionModifyBuildings.UseBunchEditMode)));
             }
             else if (___RedoStack[0] is CombinedUndoablePlayerAction combinedUndoablePlayerAction)
             {
-                MultiplayerCore.SendToAll(new PlayerActionPacket(new CombinedUndoablePlayerAction(((List<IPlayerAction>)Encoding.CombinedUndoablePlayerActionActionsInfo.GetValue(combinedUndoablePlayerAction)).Select(action =>
+                MultiplayerCore.SendToAll(new PlayerActionPacket(new CombinedUndoablePlayerAction(combinedUndoablePlayerAction.Actions.Select(action =>
                 {
                     if (action is ActionModifyIsland actionModifyIsland1)
                     {
@@ -586,7 +505,7 @@ namespace Shapez2Multiplayer
                     }
                     else if (action is ActionModifyBuildings actionModifyBuildings1)
                     {
-                        return new ActionModifyBuildings(actionModifyBuildings1.Map, actionModifyBuildings1.Executor, new ModifyBuildingsPayload(Array.Empty<PlaceBuildingPayload>(), actionModifyBuildings1.Data.Delete, actionModifyBuildings1.Data.BlueprintCurrencyModification), (bool)Encoding.ActionModifyBuildingsUseBunchEditMode.GetValue(actionModifyBuildings1));
+                        return new ActionModifyBuildings(actionModifyBuildings1.Map, actionModifyBuildings1.Executor, new ModifyBuildingsPayload(Array.Empty<PlaceBuildingPayload>(), actionModifyBuildings1.Data.Delete, actionModifyBuildings1.Data.BlueprintCurrencyModification), actionModifyBuildings1.UseBunchEditMode);
                     }
                     else
                     {
@@ -615,11 +534,11 @@ namespace Shapez2Multiplayer
                 }
                 else if (LastActionOnRedoStack is ActionModifyBuildings actionModifyBuildings)
                 {
-                    MultiplayerCore.SendToAll(new PlayerActionPacket(new ActionModifyBuildings(actionModifyBuildings.Map, actionModifyBuildings.Executor, new ModifyBuildingsPayload(actionModifyBuildings.Data.Place), (bool)Encoding.ActionModifyBuildingsUseBunchEditMode.GetValue(actionModifyBuildings))));
+                    MultiplayerCore.SendToAll(new PlayerActionPacket(new ActionModifyBuildings(actionModifyBuildings.Map, actionModifyBuildings.Executor, new ModifyBuildingsPayload(actionModifyBuildings.Data.Place), actionModifyBuildings.UseBunchEditMode)));
                 }
                 else if (LastActionOnRedoStack is CombinedUndoablePlayerAction combinedUndoablePlayerAction)
                 {
-                    MultiplayerCore.SendToAll(new PlayerActionPacket(new CombinedUndoablePlayerAction(((List<IPlayerAction>)Encoding.CombinedUndoablePlayerActionActionsInfo.GetValue(combinedUndoablePlayerAction)).Select(action =>
+                    MultiplayerCore.SendToAll(new PlayerActionPacket(new CombinedUndoablePlayerAction(combinedUndoablePlayerAction.Actions.Select(action =>
                     {
                         if (action is ActionModifyIsland actionModifyIsland1)
                         {
@@ -627,7 +546,7 @@ namespace Shapez2Multiplayer
                         }
                         else if (action is ActionModifyBuildings actionModifyBuildings1)
                         {
-                            return new ActionModifyBuildings(actionModifyBuildings1.Map, actionModifyBuildings1.Executor, new ModifyBuildingsPayload(actionModifyBuildings1.Data.Place), (bool)Encoding.ActionModifyBuildingsUseBunchEditMode.GetValue(actionModifyBuildings1));
+                            return new ActionModifyBuildings(actionModifyBuildings1.Map, actionModifyBuildings1.Executor, new ModifyBuildingsPayload(actionModifyBuildings1.Data.Place), actionModifyBuildings1.UseBunchEditMode);
                         }
                         else
                         {
@@ -732,13 +651,12 @@ namespace Shapez2Multiplayer
         {
             return !MultiplayerCore.Client;
         }
-        public static readonly FieldInfo HUDLocalizedText_TextInfo = AccessTools.Field(typeof(HUDLocalizedText), "_Text");
         [HarmonyPatch(typeof(HUDDialog), "CanCloseWithEscape", MethodType.Getter)]
         [HarmonyPrefix]
         public static bool HUDDialogCanCloseWithEscapePrefix(HUDDialog __instance, ref bool __result, HUDDialogPrefabReferences ___UIReferences)
         {
             if (!(__instance is HUDDialogSimpleInfo hudDialogSimpleInfo)) return true;
-            if (!((IText)HUDLocalizedText_TextInfo.GetValue(___UIReferences.UITitleText) is LazyLocalizedText lazyLocalizedText)) return true;
+            if (!(___UIReferences.UITitleText._Text is LazyLocalizedText lazyLocalizedText)) return true;
             if (lazyLocalizedText.Id.Id != "mutliplayer.paused-dialog.title") return true;
             __result = false;
             return false;
@@ -756,13 +674,12 @@ namespace Shapez2Multiplayer
             return !MultiplayerCore.Client;
         }
         public static bool IgnorePinEvents = false;
-        public static PropertyInfo HUDIslandGridVisualizationAreIslandsUnlockedInfo = AccessTools.Property(typeof(HUDIslandGridVisualization), "AreIslandsUnlocked");
         [HarmonyPatch(typeof(HUDIslandGridVisualization), "Draw")]
         [HarmonyPrefix]
         public static void HUDIslandGridVisualizationDrawPrefix(HUDIslandGridVisualization __instance, FrameDrawOptionsNoLOD options, float ___Alpha)
         {
             if (Shapez2Multiplayer.GameSessionOrchestrator == null) return;
-            if (!(bool)HUDIslandGridVisualizationAreIslandsUnlockedInfo.GetGetMethod(true).Invoke(__instance, new object[] { })) return;
+            if (!__instance.AreIslandsUnlocked) return;
             InstancedMeshManager ui = options.Renderers.UI;
             IMeshReference planeMesh = GeometryHelpers.PlaneMesh;
             MaterialReference islandGridHelperMaterialCursor = options.Theme.BaseResources.IslandGridHelperMaterialCursor;

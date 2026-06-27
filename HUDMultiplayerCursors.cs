@@ -92,12 +92,12 @@ namespace Shapez2Multiplayer
                 }
             }
         }
-        protected override void OnUpdate(InputDownstreamContext context)
+        public override void OnUpdate(InputDownstreamContext context)
         {
             HostCursor?.DoUpdate(context);
             foreach (var cursor in Cursors) cursor.DoUpdate(context);
         }
-        protected override void OnDispose()
+        public override void OnDispose()
         {
             Instance = null;
         }

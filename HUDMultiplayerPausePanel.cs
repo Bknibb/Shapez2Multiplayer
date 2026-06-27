@@ -112,11 +112,11 @@ namespace Shapez2Multiplayer
             }
             Entries.Clear();
         }
-        protected override void OnDispose()
+        public override void OnDispose()
         {
             instance = null;
         }
-        protected override void OnUpdate(InputDownstreamContext context)
+        public override void OnUpdate(InputDownstreamContext context)
         {
             HostButton.Interactable = !MultiplayerCore.InLobby || MultiplayerCore.Hosting;
             HostButton.Text = MultiplayerCore.InLobby && !MultiplayerCore.Hosting ? "multiplayer.inlobby".T() : MultiplayerCore.Hosting ? "multiplayer.stophosting".T() : "multiplayer.host".T();

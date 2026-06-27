@@ -148,7 +148,7 @@ namespace Shapez2Multiplayer
             }
             Sessions.Clear();
         }
-        protected override void OnDispose()
+        public override void OnDispose()
         {
             
         }

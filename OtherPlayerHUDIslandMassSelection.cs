@@ -18,11 +18,11 @@ namespace Shapez2Multiplayer
         }
         public void Update(HUDIslandMassSelection hudIslandMassSelection)
         {
-            Update((GlobalChunkCoordinate?)Encoding.HUDIslandMassSelectionAreaSelectionEnd_GInfo.GetValue(hudIslandMassSelection),
-                (GlobalChunkCoordinate?)Encoding.HUDIslandMassSelectionAreaSelectionStart_GInfo.GetValue(hudIslandMassSelection),
-                (HUDMassSelectionMode)Encoding.HUDIslandMassSelectionAreaCurrentModeInfo.GetValue(hudIslandMassSelection),
-                (HashSet<IslandModel>)Encoding.HUDIslandMassSelectionAreaPendingSelectionInfo.GetValue(hudIslandMassSelection),
-                HoverAnimationsFromIList((IList)Encoding.HUDIslandMassSelectionAreaHoverAnimationsInfo.GetValue(hudIslandMassSelection)));
+            Update(hudIslandMassSelection.AreaSelectionEnd_G,
+                hudIslandMassSelection.AreaSelectionStart_G,
+                hudIslandMassSelection.CurrentMode,
+                hudIslandMassSelection.PendingSelection,
+                HoverAnimationsFromIList(hudIslandMassSelection.HoverAnimations));
         }
         protected override void OnHover(IslandModel target)
         {

@@ -71,5 +71,20 @@ namespace Shapez2Multiplayer
         {
             MultiplayerCore.SendToAll(new PlayerInteractionStateChangedPacket(Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.InteractionState.State));
         }
+        public static void OnWaypointAdded(IPlayerWaypoint waypoint)
+        {
+            if (Shapez2Multiplayer.IgnoreWaypointEvents) return;
+            MultiplayerCore.SendToAll(new UpdateWaypointPacket(waypoint));
+        }
+        public static void OnWaypointChanged(IPlayerWaypoint waypoint)
+        {
+            if (Shapez2Multiplayer.IgnoreWaypointEvents) return;
+            MultiplayerCore.SendToAll(new UpdateWaypointPacket(waypoint));
+        }
+        public static void OnWaypointRemoved(IPlayerWaypoint waypoint)
+        {
+            if (Shapez2Multiplayer.IgnoreWaypointEvents) return;
+            MultiplayerCore.SendToAll(new DeleteWaypointPacket(waypoint));
+        }
     }
 }

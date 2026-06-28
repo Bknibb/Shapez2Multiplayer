@@ -26,7 +26,9 @@ namespace Shapez2Multiplayer.Packets
         LevelUpPlayerLevelGoal,
         ViewportPropertyChanged,
         PlayerInteractionStateChanged,
-        UpdateBuildingConfiguration
+        UpdateBuildingConfiguration,
+        UpdateWaypoint,
+        DeleteWaypoint
     }
     public static class PacketExtensions
     {
@@ -54,6 +56,8 @@ namespace Shapez2Multiplayer.Packets
                 Packet.ViewportPropertyChanged => typeof(ViewportPropertyChangedPacket),
                 Packet.PlayerInteractionStateChanged => typeof(PlayerInteractionStateChangedPacket),
                 Packet.UpdateBuildingConfiguration => typeof(UpdateBuildingConfigurationPacket),
+                Packet.UpdateWaypoint => typeof(UpdateWaypointPacket),
+                Packet.DeleteWaypoint => typeof(DeleteWaypointPacket),
                 _ => throw new ArgumentException("Invalid packet"),
             };
         public static Packet GetFromType(Type type)
@@ -79,6 +83,8 @@ namespace Shapez2Multiplayer.Packets
             else if (type == typeof(ViewportPropertyChangedPacket)) return Packet.ViewportPropertyChanged;
             else if (type == typeof(PlayerInteractionStateChangedPacket)) return Packet.PlayerInteractionStateChanged;
             else if (type == typeof(UpdateBuildingConfigurationPacket)) return Packet.UpdateBuildingConfiguration;
+            else if (type == typeof(UpdateWaypointPacket)) return Packet.UpdateWaypoint;
+            else if (type == typeof(DeleteWaypointPacket)) return Packet.DeleteWaypoint;
             throw new ArgumentException("Invalid packet type");
         }
         public static byte[]? Encode(IPacket packet, uint? from = null)

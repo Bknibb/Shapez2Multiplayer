@@ -155,6 +155,9 @@ namespace Shapez2Multiplayer
                 Shapez2Multiplayer.Research.Progress.OnChanged.Register(MultiplayerEvents.OnResearchUnlockProgressManagerChanged);
                 Shapez2Multiplayer.Research.UnlockManager.OnResearchManuallyUnlockedByPlayer.Register(MultiplayerEvents.OnResearchUnlockManagerResearchManuallyUnlockedByPlayer);
                 Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.InteractionState.OnStateChanged.Register(MultiplayerEvents.OnPlayerInteractionStateChanged);
+                Shapez2Multiplayer.PlayerWaypoints.OnWaypointAdded.Register(MultiplayerEvents.OnWaypointAdded);
+                Shapez2Multiplayer.PlayerWaypoints.OnWaypointChanged.Register(MultiplayerEvents.OnWaypointChanged);
+                Shapez2Multiplayer.PlayerWaypoints.OnWaypointRemoved.Register(MultiplayerEvents.OnWaypointRemoved);
             }
         }
         public static void RefreshLobbyData()
@@ -248,6 +251,9 @@ namespace Shapez2Multiplayer
                     Shapez2Multiplayer.Research.Progress.OnChanged.Unregister(MultiplayerEvents.OnResearchUnlockProgressManagerChanged);
                     Shapez2Multiplayer.Research.UnlockManager.OnResearchManuallyUnlockedByPlayer.Unregister(MultiplayerEvents.OnResearchUnlockManagerResearchManuallyUnlockedByPlayer);
                     Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.InteractionState.OnStateChanged.Unregister(MultiplayerEvents.OnPlayerInteractionStateChanged);
+                    Shapez2Multiplayer.PlayerWaypoints.OnWaypointAdded.Unregister(MultiplayerEvents.OnWaypointAdded);
+                    Shapez2Multiplayer.PlayerWaypoints.OnWaypointChanged.Unregister(MultiplayerEvents.OnWaypointChanged);
+                    Shapez2Multiplayer.PlayerWaypoints.OnWaypointRemoved.Unregister(MultiplayerEvents.OnWaypointRemoved);
                     MultiplayerCore.socketManager.SendToAll(new DisconnectReasonPacket(MultiplayerCore.DisconnectReason.SessionClosed));
                     foreach (var sm in socketManager.SocketManagers)
                     {
@@ -264,6 +270,9 @@ namespace Shapez2Multiplayer
                     Shapez2Multiplayer.GameSessionOrchestrator?.LocalPlayer.HUDData.Pins.OnPinRemoved.Unregister(MultiplayerEvents.OnPinRemoved);
                     ((IEntityPlacementStateController?)Shapez2Multiplayer.EntityPlacementRunner)?.OnPlacementDataChanged.Unregister(MultiplayerEvents.OnPlacementDataChanged);
                     Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.InteractionState.OnStateChanged.Unregister(MultiplayerEvents.OnPlayerInteractionStateChanged);
+                    Shapez2Multiplayer.PlayerWaypoints.OnWaypointAdded.Unregister(MultiplayerEvents.OnWaypointAdded);
+                    Shapez2Multiplayer.PlayerWaypoints.OnWaypointChanged.Unregister(MultiplayerEvents.OnWaypointChanged);
+                    Shapez2Multiplayer.PlayerWaypoints.OnWaypointRemoved.Unregister(MultiplayerEvents.OnWaypointRemoved);
                     connectionManager.ConnectionManager.Close();
                     connectionManager = null;
                 }

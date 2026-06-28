@@ -77,6 +77,9 @@ namespace Shapez2Multiplayer.Packets
                     ((IEntityPlacementStateController)Shapez2Multiplayer.EntityPlacementRunner).OnPlacementDataChanged.Register(MultiplayerEvents.OnPlacementDataChanged);
                     Shapez2Multiplayer.Research.PlayerLevelGoals.OnLeveledUp.Register(MultiplayerEvents.OnResearchPlayerLevelGoalManagerLeveledUpClient);
                     Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer.InteractionState.OnStateChanged.Register(MultiplayerEvents.OnPlayerInteractionStateChanged);
+                    Shapez2Multiplayer.PlayerWaypoints.OnWaypointAdded.Register(MultiplayerEvents.OnWaypointAdded);
+                    Shapez2Multiplayer.PlayerWaypoints.OnWaypointChanged.Register(MultiplayerEvents.OnWaypointChanged);
+                    Shapez2Multiplayer.PlayerWaypoints.OnWaypointRemoved.Register(MultiplayerEvents.OnWaypointRemoved);
                     MultiplayerCore.connectionManager.FinishedConnecting = true;
                     foreach (var connection in MultiplayerCore.connectionManager.Connections)
                     {

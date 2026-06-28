@@ -73,6 +73,7 @@ namespace Shapez2Multiplayer
         public static IInteractionMode? InteractionMode => GameSessionOrchestratorDependencyContainer?.Resolve<IInteractionMode>();
         public static IEventSender? PassiveEventBus => GameSessionOrchestratorDependencyContainer?.Resolve<IEventSender>();
         public static HUDEvents? HudEvents => GameSessionOrchestratorDependencyContainer?.Resolve<HUDEvents>();
+        public static IPlayerWaypoints? PlayerWaypoints => GameSessionOrchestratorDependencyContainer?.Resolve<IPlayerWaypoints>();
         public Shapez2Multiplayer(ILogger logger)
         {
             Shapez2Multiplayer.logger = logger;
@@ -674,6 +675,7 @@ namespace Shapez2Multiplayer
             return !MultiplayerCore.Client;
         }
         public static bool IgnorePinEvents = false;
+        public static bool IgnoreWaypointEvents = false;
         [HarmonyPatch(typeof(HUDIslandGridVisualization), "Draw")]
         [HarmonyPrefix]
         public static void HUDIslandGridVisualizationDrawPrefix(HUDIslandGridVisualization __instance, FrameDrawOptionsNoLOD options, float ___Alpha)

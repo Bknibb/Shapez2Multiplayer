@@ -1339,10 +1339,17 @@ namespace Shapez2Multiplayer
         public static ClearIslandContentPlayerAction DecodeClearIslandContentPlayerAction(Stream stream)
         {
             using BinaryReader reader = new BinaryReader(stream, UTF8Encoding.UTF8, leaveOpen: true);
-            var IslandsToClear = new IslandId[reader.ReadInt32()];
-            for (int i = 0; i < IslandsToClear.Length; i++)
+            var IslandsToClear = new List<IslandId>();
+            int length = reader.ReadInt32();
+            for (int i = 0; i < length; i++)
             {
-                IslandsToClear[i] = Shapez2Multiplayer.MapModel.GetIsland(DecodeGlobalChunkCoordinate(stream)).Id;
+                if (Shapez2Multiplayer.MapModel.TryGetIsland(DecodeGlobalChunkCoordinate(stream), out var island))
+                {
+                    IslandsToClear.Add(island.Id);
+                } else
+                {
+                    Shapez2Multiplayer.logger.Warning.Log("Island not found for ClearIslandContentPlayerAction, likely desync");
+                }
             }
             return new ClearIslandContentPlayerAction(Shapez2Multiplayer.MapModel, Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer, IslandsToClear);
         }
@@ -1359,10 +1366,17 @@ namespace Shapez2Multiplayer
         public static ClearBuildingContentPlayerAction DecodeClearBuildingContentPlayerAction(Stream stream)
         {
             using BinaryReader reader = new BinaryReader(stream, UTF8Encoding.UTF8, leaveOpen: true);
-            var BuildingsToClear = new BuildingId[reader.ReadInt32()];
-            for (int i = 0; i < BuildingsToClear.Length; i++)
+            var BuildingsToClear = new List<BuildingId>();
+            int length = reader.ReadInt32();
+            for (int i = 0; i < length; i++)
             {
-                BuildingsToClear[i] = Shapez2Multiplayer.MapModel.GetBuilding(DecodeGlobalTileCoordinate(stream)).Id;
+                if (Shapez2Multiplayer.MapModel.TryGetBuilding(DecodeGlobalTileCoordinate(stream), out var building))
+                {
+                    BuildingsToClear.Add(building.Id);
+                } else
+                {
+                    Shapez2Multiplayer.logger.Warning.Log("Building not found for ClearBuildingContentPlayerAction, likely desync");
+                }
             }
             return new ClearBuildingContentPlayerAction(Shapez2Multiplayer.MapModel, Shapez2Multiplayer.GameSessionOrchestrator.LocalPlayer, BuildingsToClear);
         }
@@ -1400,10 +1414,12 @@ namespace Shapez2Multiplayer
             {
                 place[i] = DecodeActionModifyIslandPlacePayload(stream); ;
             }
-            var delete = new ActionModifyIsland.DeletePayload[reader.ReadInt32()];
-            for (int i = 0; i < delete.Length; i++)
+            var delete = new List<ActionModifyIsland.DeletePayload>();
+            int length = reader.ReadInt32();
+            for (int i = 0; i < length; i++)
             {
-                delete[i] = DecodeActionModifyIslandDeletePayload(stream);
+                var payload = DecodeActionModifyIslandDeletePayload(stream);
+                if (payload.HasValue) delete.Add(payload.Value);
             }
             return new ActionModifyIsland.Payload(place, delete, ignorePlacementBlueprintCost, refundDeletionBlueprintCost);
         }
@@ -1411,10 +1427,15 @@ namespace Shapez2Multiplayer
         {
             Encode(Shapez2Multiplayer.MapModel.GetIsland(deletePayload.IslandId).Position, stream);
         }
-        public static ActionModifyIsland.DeletePayload DecodeActionModifyIslandDeletePayload(Stream stream)
+        public static ActionModifyIsland.DeletePayload? DecodeActionModifyIslandDeletePayload(Stream stream)
         {
             var Coordinate = DecodeGlobalChunkCoordinate(stream);
-            var Id = Shapez2Multiplayer.MapModel.GetIsland(Coordinate).Id;
+            if (!Shapez2Multiplayer.MapModel.TryGetIsland(Coordinate, out var island))
+            {
+                Shapez2Multiplayer.logger.Warning.Log("Island not found for ActionModifyIsland.DeletePayload, likely desync");
+                return null;
+            }
+            var Id = island.Id;
             DeletedIslandIds[Coordinate] = Id;
             return new ActionModifyIsland.DeletePayload(Id);
         }
@@ -1530,10 +1551,12 @@ namespace Shapez2Multiplayer
             {
                 place[i] = DecodePlaceBuildingPayload(stream);
             }
-            var delete = new DeleteBuildingPayload[reader.ReadInt32()];
-            for (int i = 0; i < delete.Length; i++)
+            var delete = new List<DeleteBuildingPayload>();
+            int length = reader.ReadInt32();
+            for (int i = 0; i < length; i++)
             {
-                delete[i] = DecodeDeleteBuildingPayload(stream);
+                var payload = DecodeDeleteBuildingPayload(stream);
+                if (payload.HasValue) delete.Add(payload.Value);
             }
             return new ModifyBuildingsPayload(place, delete, DecodeBlueprintCurrency(stream));
         }
@@ -1543,11 +1566,16 @@ namespace Shapez2Multiplayer
             Encode(Shapez2Multiplayer.MapModel.GetBuilding(deleteBuildingPayload.BuildingId).Tile_G, stream);
             writer.Write(deleteBuildingPayload.ForceAllowDelete);
         }
-        public static DeleteBuildingPayload DecodeDeleteBuildingPayload(Stream stream)
+        public static DeleteBuildingPayload? DecodeDeleteBuildingPayload(Stream stream)
         {
             using BinaryReader reader = new BinaryReader(stream, UTF8Encoding.UTF8, leaveOpen: true);
             var Coordinate = DecodeGlobalTileCoordinate(stream);
-            var Id = Shapez2Multiplayer.MapModel.GetBuilding(Coordinate).Id;
+            if (!Shapez2Multiplayer.MapModel.TryGetBuilding(Coordinate, out var building))
+            {
+                Shapez2Multiplayer.logger.Warning.Log("Building not found for DeleteBuildingPayload, likely desync");
+                return null;
+            }
+            var Id = building.Id;
             DeletedBuildingIds[Coordinate] = Id;
             return new DeleteBuildingPayload(Id, reader.ReadBoolean());
         }

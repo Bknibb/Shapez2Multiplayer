@@ -1,11 +1,11 @@
 ﻿{
-  "Version": "1.1.8",
+  "Version": "1.1.9",
   "Description": "A Multiplayer Mod For Shapez 2",
   "Author": "Bknibb",
   "AffectsSaveGames": false,
   "DisablesAchievements": false,
   "SaveGameCompabilityRange": "*",
-  "GameVersionSupportRange": ">=1.0.0",
+  "GameVersionSupportRange": ">=1.2.0",
   "Assemblies": [
     "Shapez2Multiplayer.dll"
   ],

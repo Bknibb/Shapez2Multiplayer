@@ -1,6 +1,7 @@
 ﻿using Core.Collections;
 using Core.Collections.Scoped;
 using Core.Localization;
+using Game.Core.Blueprint;
 using Game.Core.Coordinates;
 using Game.Core.Research;
 using Game.Core.Serialization;

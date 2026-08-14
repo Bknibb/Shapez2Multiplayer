@@ -94,6 +94,14 @@
 		  <HintPath>$(SPZ2_PATH)\Game.Core.Content.dll</HintPath>
 		  <Private>False</Private>
 	  </Reference>
+	  <Reference Include="Game.Core.Blueprint" Publicize="true">
+		  <HintPath>$(SPZ2_PATH)\Game.Core.Blueprint.dll</HintPath>
+		  <Private>False</Private>
+	  </Reference>
+	  <Reference Include="Game.Core.Serialization" Publicize="true">
+		  <HintPath>$(SPZ2_PATH)\Game.Core.Serialization.dll</HintPath>
+		  <Private>False</Private>
+	  </Reference>
     <Reference Include="Game.Orchestration" Publicize="true">
       <HintPath>$(SPZ2_PATH)\Game.Orchestration.dll</HintPath>
 	  <Private>False</Private>

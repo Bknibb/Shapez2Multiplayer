@@ -56,12 +56,12 @@ namespace Shapez2Multiplayer.Packets
             {
                 var shapeId = ShapeIdManager.Resolve(kvp.Key);
                 var current = researchManager.ShapeStorage.GetAmount(shapeId);
-                if (current < kvp.Value)
+                if (current < (ulong)kvp.Value)
                 {
-                    researchManager.ShapeStorage.Add(shapeId, (uint)(kvp.Value - current));
-                } else if (current > kvp.Value)
+                    researchManager.ShapeStorage.Add(shapeId, (ulong)kvp.Value - current);
+                } else if (current > (ulong)kvp.Value)
                 {
-                    researchManager.ShapeStorage.TryTake(shapeId, (uint)(current - kvp.Value));
+                    researchManager.ShapeStorage.TryTake(shapeId, current - (ulong)kvp.Value);
                 }
             }
             researchManager.BlueprintCurrencyManager.SetBlueprintCurrency(ResearchManagerSerializedData.BlueprintCurrency.BlueprintCurrency);

@@ -13,6 +13,7 @@ using HarmonyLib;
 using Menu.MainMenu;
 using Shapez2Multiplayer.Packets;
 using Shapez2UILib;
+using Steamworks.Data;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -129,8 +130,10 @@ namespace Shapez2Multiplayer
         }
         public void Dispose()
         {
+            harmony?.UnpatchSelf();
+            if (dontDestroyObject != null) GameObject.Destroy(dontDestroyObject);
             MultiplayerCore.Disconnect(canReturnToMenu: false);
-            harmony.UnpatchSelf();
+            Application.quitting -= Quitting;
         }
         public static void BuildMultiplayerUI(HUDMenuMultiplayerState hudMenuMultiplayerState)
         {
